@@ -42,7 +42,9 @@
 static NSString *const kKeyTimeStamp = @"timestamp";
 static NSString *const kDefaultLogName = @"log";
 static NSString *const kLogNameAndDateSeparator = @"__";
+static NSString *const kCsvSeparator = @",";	//no space -> slightly smaller
 static NSString *const kLogFileExt = @".csv";
+static NSString *const kFloatFormat = @"%.3f";	// log only decimal places (bad for lat/lon...)
 static const timestamp_t kDefaultGapThresholdMs = 2*1000;	//2s
 static const timestamp_t kDefaultTimeStamp = -1;
 
@@ -301,14 +303,12 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 	NSMutableArray* fmtVals = [NSMutableArray arrayWithCapacity:[values count]];
 	for (id val in values) {
 		if (val && [val doubleValue] && isFloatingPointNumber(val)) {
-			// 6 decimal places = ~.5ft of location accuracy (in degrees),
-			// which is what's most sensitive to precision problems
-			[fmtVals addObject:[NSString stringWithFormat:@"%.6f", [val doubleValue]]];
+			[fmtVals addObject:[NSString stringWithFormat:kFloatFormat, [val doubleValue]]];
 		} else {
 			[fmtVals addObject:val];
 		}
 	}
-	NSString* line = [[fmtVals componentsJoinedByString:@", "] stringByAppendingString:@"\n"];
+	NSString* line = [[fmtVals componentsJoinedByString:kCsvSeparator] stringByAppendingString:@"\n"];
 	NSLog(@"writing line: %@", line);
 	NSData *data = [line dataUsingEncoding:NSUTF8StringEncoding];
 	[stream write:data.bytes maxLength:data.length];
@@ -460,7 +460,7 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 -(NSString*) generateLogFilePath {
 	NSString* logPath = [FileUtils getFullFileName:_logName];
 	logPath = [logPath stringByAppendingString:kLogNameAndDateSeparator];
-	logPath = [logPath stringByAppendingString:currentTimeStr()];
+	logPath = [logPath stringByAppendingString:currentTimeStrForFileName()];
 	return [logPath stringByAppendingString:kLogFileExt];
 }
 

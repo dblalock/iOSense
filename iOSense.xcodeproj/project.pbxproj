@@ -154,6 +154,8 @@
 				727FA13B1A60BBFC00420305 /* AppDelegate.h */,
 				727FA13C1A60BBFC00420305 /* AppDelegate.m */,
 				727FA13D1A60BBFC00420305 /* Main.storyboard */,
+				727FA1531A60BBFC00420305 /* ViewController.h */,
+				727FA1541A60BBFC00420305 /* ViewController.m */,
 				727FA13F1A60BBFC00420305 /* DBDataLogger.h */,
 				727FA1401A60BBFC00420305 /* DBDataLogger.m */,
 				727FA1411A60BBFC00420305 /* DBSensorMonitor.h */,
@@ -173,8 +175,6 @@
 				727FA1501A60BBFC00420305 /* main.m */,
 				727FA1511A60BBFC00420305 /* TimeUtils.h */,
 				727FA1521A60BBFC00420305 /* TimeUtils.m */,
-				727FA1531A60BBFC00420305 /* ViewController.h */,
-				727FA1541A60BBFC00420305 /* ViewController.m */,
 			);
 			path = iOSense;
 			sourceTree = "<group>";

@@ -8,6 +8,8 @@
 
 #import "ViewController.h"
 
+#import <MessageUI/MessageUI.h>
+
 #import "Labels.h"
 #import "DBDataLogger.h"
 #import "DBSensorMonitor.h"
@@ -792,5 +794,40 @@ static NSInteger tapCount = 0;
 //	cell.backgroundColor = [self colorForIndex:indexPath.row];
 //}
 
+
+//===============================================================
+#pragma mark MFMailComposeViewControllerDelegate
+//===============================================================
+
+//- (IBAction)sendEmailButtonClicked :(id)sender {
+//	[self composeEmailWithDebugAttachment];
+//}
+
+//- (void)composeEmailWithDebugAttachment {
+//	if ([MFMailComposeViewController canSendMail]) {
+//		
+//		MFMailComposeViewController *mailViewController = [[MFMailComposeViewController alloc] init];
+//		mailViewController.mailComposeDelegate = self;
+//		
+//		NSDictionary* files = [self errorLogData];
+//		for (NSString* filename in files) {
+//			NSMutableData *errorLogData = [NSMutableData data];
+//			[errorLogData appendData:files[filename]];
+//			[mailViewController addAttachmentData:errorLogData mimeType:@"text/csv" fileName:filename];
+//		}
+//		
+//		[mailViewController setSubject:@"Data Files"];
+//		[self presentModalViewController:mailViewController animated:YES];
+//	} else {
+//		NSString *message;
+//		
+//		message = @"Sorry, your issue can't be reported right now. This is most likely because no mail accounts are set up on your device.";
+//		[[[UIAlertView alloc] initWithTitle:nil message:message delegate:nil cancelButtonTitle:NSLocalizedString(@"OK", @"") otherButtonTitles: nil] show];
+//	}
+//}
+
+- (void)mailComposeController:(MFMailComposeViewController *)controller didFinishWithResult:(MFMailComposeResult)result error:(NSError *)error {
+	[controller dismissModalViewControllerAnimated:YES];
+}
 
 @end
