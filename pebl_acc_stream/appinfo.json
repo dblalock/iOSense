@@ -1,0 +1,17 @@
+{
+  "uuid": "00674CB5-AFEE-464D-B791-5CDBA233EA93",
+  "shortName": "StreamAcc",
+  "longName": "StreamAcc",
+  "companyName": "DBlalock",
+  "versionCode": 1,
+  "versionLabel": "1.0",
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {
+    "dummy": 0
+  },
+  "resources": {
+    "media": []
+  }
+}
