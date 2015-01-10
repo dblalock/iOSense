@@ -34,3 +34,5 @@ int64_t currentTimeMs();
 
 NSDateFormatter* isoDateFormatter();
 NSString* currentTimeStr();
+NSDateFormatter* isoDateFormatterForFileName();	//no colons
+NSString* currentTimeStrForFileName();			//no colons

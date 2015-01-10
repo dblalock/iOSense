@@ -8,6 +8,11 @@
 //NOTES:
 // -we could just not even invoke the callback when the data we receive is
 // invalid, but this way we log when it becomes invalid if it was valid before
+// -we quantize some things to ints to save space (especially when written
+// to a csv); this should result in effectively no error, since many of them
+// are either ints that happen to be passed as doubles (eg, the number of
+// meters to which CoreLocation thinks it's accurate) or have decimal places
+// that are likely just noise anyway (eg, the heading of the phone in degrees)
 
 #import "DBSensorMonitor.h"
 
@@ -30,6 +35,10 @@ BOOL headingValid(CLHeading* heading) {
 	return heading && heading.headingAccuracy > 0;
 }
 
+int hashTimeStamp(timestamp_t t) {
+	return t % 1000;
+}
+
 //TODO make all the keys string constants
 
 NSDictionary* defaultsDictMotion() {
@@ -49,7 +58,8 @@ NSDictionary* defaultsDictMotion() {
 				@"mag field x": DBINVALID_MAG,
 				@"mag field y": DBINVALID_MAG,
 				@"mag field z": DBINVALID_MAG,
-				@"motionUpdateTimestamp": DBINVALID_TIMESTAMP};
+				@"motionUpdateHash": DBINVALID_HASH};
+//				@"motionUpdateTimestamp": DBINVALID_TIMESTAMP};
 }
 
 NSDictionary* defaultsDictLocation() {
@@ -60,8 +70,9 @@ NSDictionary* defaultsDictLocation() {
 				@"vertical accuracy (m)":	DBINVALID_ACCURACY_LOC,
 				@"building floor (int)": DBINVALID_FLOOR,
 				@"course (degrees)": DBINVALID_ANGLE,
-				@"speed (meters/sec)": DBINVALID_SPEED,
-				@"locationUpdateTimestamp": DBINVALID_TIMESTAMP};
+				@"speed (m/sec)": DBINVALID_SPEED,
+				@"locationUpdateHash": DBINVALID_HASH};
+//				@"locationUpdateTimestamp": DBINVALID_TIMESTAMP};
 }
 
 NSDictionary* defaultsDictHeading() {
@@ -71,7 +82,8 @@ NSDictionary* defaultsDictHeading() {
 				@"heading x (uTesla)": DBINVALID_HEADING,
 				@"heading y (uTesla)": DBINVALID_HEADING,
 				@"heading z (uTesla)": DBINVALID_HEADING,
-				@"headingUpdateTimestamp": DBINVALID_TIMESTAMP};
+				@"headingUpdateHash": DBINVALID_HASH};
+//				@"headingUpdateTimestamp": DBINVALID_TIMESTAMP};
 }
 
 NSDictionary* dictFromMotion(CMDeviceMotion* motion) {
@@ -92,35 +104,46 @@ NSDictionary* dictFromMotion(CMDeviceMotion* motion) {
 				@"mag field x": magValid ? @(motion.magneticField.field.x) : DBINVALID_MAG,
 				@"mag field y": magValid ? @(motion.magneticField.field.y) : DBINVALID_MAG,
 				@"mag field z": magValid ? @(motion.magneticField.field.z) : DBINVALID_MAG,
-				@"motionUpdateTimestamp": @(timeStampFromCoreMotionTimeStamp(motion.timestamp))};
+				@"motionUpdateHash": @(hashTimeStamp(currentTimeStampMs()))};
+				//this would be slightly better, but it's not clear that it works...
+//				@"motionUpdateTimestamp": @(timeStampFromCoreMotionTimeStamp(motion.timestamp))};
 }
 
 NSDictionary* dictFromLocation(CLLocation* location) {
 	if (! locationValid(location) ) {
 		return defaultsDictLocation();
 	}
-	return @{	@"latitude (deg)" : @(location.coordinate.latitude),
-				@"longitude (deg)": @(location.coordinate.longitude),
-				@"altitude (deg)" : @(location.altitude),
-				@"horizontal accuracy (m)": @(location.horizontalAccuracy),
-				@"vertical accuracy (m)":	@(location.verticalAccuracy),
+	// note that we turn the latitude and longitude into strings so that we
+	// can ensure full precision regardless of any subsequent quantization
+	// in logging; this is kind of a hack since anyone trying to use the
+	// data directly, rather than log it as a string, would get a pretty
+	// strange surprise. We use 6 decimal places since it yields ~.5ft of
+	// location accuracy (since it's given in degrees) and is thus probably
+	// more accurate than the GPS
+	return @{	@"latitude (deg)" : [NSString stringWithFormat:@"%6f", location.coordinate.latitude],
+				@"longitude (deg)": [NSString stringWithFormat:@"%6f", location.coordinate.latitude],
+				@"altitude (deg)" : @((int)location.altitude),
+				@"horizontal accuracy (m)": @((int)location.horizontalAccuracy),
+				@"vertical accuracy (m)":	@((int)location.verticalAccuracy),
 				@"building floor (int)": @(location.floor.level),
 				@"course (degrees)": @(location.course),
-				@"speed (meters/sec)": @(location.speed),
-				@"locationUpdateTimestamp": @(timeStampFromDate(location.timestamp))};
+				@"speed (m/sec)": @(location.speed),
+				@"locationUpdateHash": @(hashTimeStamp(timeStampFromDate(location.timestamp)))};
+//				@"locationUpdateTimestamp": @(timeStampFromDate(location.timestamp))};
 }
 
 NSDictionary* dictFromHeading(CLHeading* heading) {
 	if (! headingValid(heading) ) {
 		return defaultsDictHeading();
 	}
-	return @{	@"headingAccuracy (deg)":  @(heading.headingAccuracy),
-				@"magneticHeading (deg)": @(heading.magneticHeading),	//to magnetic north
-				@"trueHeading (deg)":	  @(heading.trueHeading),		//to true north
-				@"heading x (uTesla)": @(heading.x),
-				@"heading y (uTesla)": @(heading.y),
-				@"heading z (uTesla)": @(heading.z),
-				@"headingUpdateTimestamp": @(timeStampFromDate(heading.timestamp))};
+	return @{	@"headingAccuracy (deg)":  @((int)heading.headingAccuracy),
+				@"magneticHeading (deg)": @((int)heading.magneticHeading),	//to magnetic north
+				@"trueHeading (deg)":	  @((int)heading.trueHeading),		//to true north
+				@"heading x (uTesla)": @((int)heading.x),
+				@"heading y (uTesla)": @((int)heading.y),
+				@"heading z (uTesla)": @((int)heading.z),
+				@"headingUpdateHash": @(hashTimeStamp(timeStampFromDate(heading.timestamp)))};
+//				@"headingUpdateTimestamp": @(timeStampFromDate(heading.timestamp))};
 }
 
 NSDictionary* allSensorDefaultsDict() {
@@ -183,6 +206,7 @@ NSDictionary* allSensorDefaultsDict() {
 	withHandler:^(CMDeviceMotion *motion, NSError *error) {
 		NSDictionary* data = dictFromMotion(motion);
 		timestamp_t t = timeStampFromCoreMotionTimeStamp(motion.timestamp);
+		NSLog(@"logging a CMDeviceMotion");
 		if (_onDataReceived) {
 			_onDataReceived(data, t);
 		}

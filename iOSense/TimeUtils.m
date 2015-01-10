@@ -71,8 +71,23 @@ NSDateFormatter* isoDateFormatter() {
 	return dateFormatter;
 }
 
+// like the above, but underscores instead of colons
+NSDateFormatter* isoDateFormatterForFileName() {
+	NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+	NSLocale *enUSPOSIXLocale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+	[dateFormatter setLocale:enUSPOSIXLocale];
+	[dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH_mm_ssZZZZZ"];
+	return dateFormatter;
+}
+
 NSString* currentTimeStr() {
 	NSDate *now = [NSDate date];
 	NSString *iso8601String = [isoDateFormatter() stringFromDate:now];
+	return iso8601String;
+}
+
+NSString* currentTimeStrForFileName() {
+	NSDate *now = [NSDate date];
+	NSString *iso8601String = [isoDateFormatterForFileName() stringFromDate:now];
 	return iso8601String;
 }
