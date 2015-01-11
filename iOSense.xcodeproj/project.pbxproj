@@ -18,6 +18,8 @@
 		10BAB80F190726A700993020 /* ExternalAccessory.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10BAB809190726A700993020 /* ExternalAccessory.framework */; };
 		10BAB810190726A700993020 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 10BAB80A190726A700993020 /* libz.dylib */; };
 		10BAB811190726A700993020 /* MessageUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10BAB80B190726A700993020 /* MessageUI.framework */; };
+		720ED45C1A61E98800009338 /* inflicted.png in Resources */ = {isa = PBXBuildFile; fileRef = 720ED45B1A61E98800009338 /* inflicted.png */; };
+		720ED45E1A61EA8700009338 /* light_honeycomb.png in Resources */ = {isa = PBXBuildFile; fileRef = 720ED45D1A61EA8700009338 /* light_honeycomb.png */; };
 		727FA1551A60BBFC00420305 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 727FA13C1A60BBFC00420305 /* AppDelegate.m */; };
 		727FA1561A60BBFC00420305 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 727FA13D1A60BBFC00420305 /* Main.storyboard */; };
 		727FA1571A60BBFC00420305 /* DBDataLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = 727FA1401A60BBFC00420305 /* DBDataLogger.m */; };
@@ -32,6 +34,7 @@
 		727FA1611A60BBFC00420305 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 727FA1501A60BBFC00420305 /* main.m */; };
 		727FA1621A60BBFC00420305 /* TimeUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 727FA1521A60BBFC00420305 /* TimeUtils.m */; };
 		727FA1631A60BBFC00420305 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 727FA1541A60BBFC00420305 /* ViewController.m */; };
+		72AD836F1A61F85C007720ED /* SHCTableViewCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 72AD836E1A61F85C007720ED /* SHCTableViewCell.m */; };
 		A191730F992B3C8F599F57F4 /* libPods.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E7238C615B2AEDEADA96C4D /* libPods.a */; };
 /* End PBXBuildFile section */
 
@@ -50,6 +53,8 @@
 		10BAB80A190726A700993020 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
 		10BAB80B190726A700993020 /* MessageUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MessageUI.framework; path = System/Library/Frameworks/MessageUI.framework; sourceTree = SDKROOT; };
 		47DA06DB99F80C99BEF5D683 /* Pods.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.release.xcconfig; path = "Pods/Target Support Files/Pods/Pods.release.xcconfig"; sourceTree = "<group>"; };
+		720ED45B1A61E98800009338 /* inflicted.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inflicted.png; sourceTree = "<group>"; };
+		720ED45D1A61EA8700009338 /* light_honeycomb.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = light_honeycomb.png; sourceTree = "<group>"; };
 		727FA13B1A60BBFC00420305 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		727FA13C1A60BBFC00420305 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		727FA13E1A60BBFC00420305 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -74,6 +79,8 @@
 		727FA1521A60BBFC00420305 /* TimeUtils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TimeUtils.m; sourceTree = "<group>"; };
 		727FA1531A60BBFC00420305 /* ViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
 		727FA1541A60BBFC00420305 /* ViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
+		72AD836D1A61F85C007720ED /* SHCTableViewCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHCTableViewCell.h; sourceTree = "<group>"; };
+		72AD836E1A61F85C007720ED /* SHCTableViewCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SHCTableViewCell.m; sourceTree = "<group>"; };
 		99814588A791C3485A24932E /* Pods.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.debug.xcconfig; path = "Pods/Target Support Files/Pods/Pods.debug.xcconfig"; sourceTree = "<group>"; };
 		9E7238C615B2AEDEADA96C4D /* libPods.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPods.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -151,9 +158,9 @@
 		727FA13A1A60BBFC00420305 /* iOSense */ = {
 			isa = PBXGroup;
 			children = (
+				727FA13D1A60BBFC00420305 /* Main.storyboard */,
 				727FA13B1A60BBFC00420305 /* AppDelegate.h */,
 				727FA13C1A60BBFC00420305 /* AppDelegate.m */,
-				727FA13D1A60BBFC00420305 /* Main.storyboard */,
 				727FA1531A60BBFC00420305 /* ViewController.h */,
 				727FA1541A60BBFC00420305 /* ViewController.m */,
 				727FA13F1A60BBFC00420305 /* DBDataLogger.h */,
@@ -166,7 +173,11 @@
 				727FA1471A60BBFC00420305 /* FileUtils.m */,
 				727FA1481A60BBFC00420305 /* GraphView.h */,
 				727FA1491A60BBFC00420305 /* GraphView.m */,
+				72AD836D1A61F85C007720ED /* SHCTableViewCell.h */,
+				72AD836E1A61F85C007720ED /* SHCTableViewCell.m */,
 				727FA14A1A60BBFC00420305 /* green_checkmark.png */,
+				720ED45B1A61E98800009338 /* inflicted.png */,
+				720ED45D1A61EA8700009338 /* light_honeycomb.png */,
 				727FA14B1A60BBFC00420305 /* Images.xcassets */,
 				727FA14C1A60BBFC00420305 /* iOSense-Info.plist */,
 				727FA14D1A60BBFC00420305 /* iOSense-Prefix.pch */,
@@ -240,6 +251,8 @@
 			files = (
 				727FA1591A60BBFC00420305 /* iOSense.entitlements in Resources */,
 				727FA15E1A60BBFC00420305 /* Images.xcassets in Resources */,
+				720ED45E1A61EA8700009338 /* light_honeycomb.png in Resources */,
+				720ED45C1A61E98800009338 /* inflicted.png in Resources */,
 				727FA15A1A60BBFC00420305 /* InfoPlist.strings in Resources */,
 				727FA1561A60BBFC00420305 /* Main.storyboard in Resources */,
 				727FA15D1A60BBFC00420305 /* green_checkmark.png in Resources */,
@@ -294,6 +307,7 @@
 				727FA1601A60BBFC00420305 /* Labels.m in Sources */,
 				727FA1611A60BBFC00420305 /* main.m in Sources */,
 				727FA1621A60BBFC00420305 /* TimeUtils.m in Sources */,
+				72AD836F1A61F85C007720ED /* SHCTableViewCell.m in Sources */,
 				727FA15B1A60BBFC00420305 /* FileUtils.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

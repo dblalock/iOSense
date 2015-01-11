@@ -44,7 +44,10 @@ static NSString *const kDefaultLogName = @"log";
 static NSString *const kLogNameAndDateSeparator = @"__";
 static NSString *const kCsvSeparator = @",";	//no space -> slightly smaller
 static NSString *const kLogFileExt = @".csv";
-static NSString *const kFloatFormat = @"%.3f";	// log only decimal places (bad for lat/lon...)
+static NSString *const kNanStr = @"";
+static const uint kFloatDecimalPlaces = 3;
+static NSString *const kFloatFormat = @"%.3f";	// log only 3 decimal places (bad for lat/lon...)
+static NSString *const kIntFormat = @"%d";
 static const timestamp_t kDefaultGapThresholdMs = 2*1000;	//2s
 static const timestamp_t kDefaultTimeStamp = -1;
 
@@ -302,8 +305,13 @@ BOOL isFloatingPointNumber(id x) {
 void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 	NSMutableArray* fmtVals = [NSMutableArray arrayWithCapacity:[values count]];
 	for (id val in values) {
-		if (val && [val doubleValue] && isFloatingPointNumber(val)) {
-			[fmtVals addObject:[NSString stringWithFormat:kFloatFormat, [val doubleValue]]];
+		if (val && isFloatingPointNumber(val)) {
+			double dbl = [val doubleValue];
+			if (isnan(dbl)) {
+				[fmtVals addObject:kNanStr];	//empty if nan
+			} else {
+				[fmtVals addObject:[NSString stringWithFormat:kFloatFormat, dbl]];
+			}
 		} else {
 			[fmtVals addObject:val];
 		}

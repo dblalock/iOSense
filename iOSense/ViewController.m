@@ -10,6 +10,7 @@
 
 #import <MessageUI/MessageUI.h>
 
+#import "SHCTableViewCell.h"
 #import "Labels.h"
 #import "DBDataLogger.h"
 #import "DBSensorMonitor.h"
@@ -107,8 +108,10 @@ NSArray* allDataDefaultValues() {
 @property (weak, nonatomic) IBOutlet UITextField *customText;
 @property (weak, nonatomic) IBOutlet UISwitch *customSwitch;
 
+@property (weak, nonatomic) IBOutlet UIScrollView *tablesScrollView;
 @property (weak, nonatomic) IBOutlet UITableView *labelTable0;
 @property (weak, nonatomic) IBOutlet UITableView *labelTable1;
+@property (weak, nonatomic) IBOutlet UITableView *labelTable2;
 
 //@property (strong, nonatomic) IBOutlet UIStepper *actionNumberStepper;
 //@property (strong, nonatomic) IBOutlet UITextField *actionNumberText;
@@ -135,6 +138,18 @@ NSArray* allDataDefaultValues() {
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+	
+	// background img
+	self.view.backgroundColor = [UIColor colorWithPatternImage: [UIImage imageNamed:@"inflicted.png"]];
+	
+	// not-as-hideous tableview cells
+	for (UITableView* table in @[_labelTable0, _labelTable1, _labelTable2]) {
+		[table registerClass:[SHCTableViewCell class] forCellReuseIdentifier:@"gradientCell"];
+		table.layer.cornerRadius = 4;
+	}
+	
+	// make it actually scroll
+	_tablesScrollView.contentSize = CGSizeMake(480, 150);
 	
 	// state flags
 	_launchedApp = NO;
@@ -360,19 +375,23 @@ NSArray* sanitizeTagsForCsv(NSArray* ar) {
 	[_activeLabelsLbl setText:txt];
 }
 
+#define ACTIVE_COLOR ([UIColor greenColor])
+#define INACTIVE_COLOR ([UIColor lightGrayColor])
 void setCellActive(UITableViewCell* cell) {
-	[cell setBackgroundColor:[UIColor greenColor]];
+	[cell setBackgroundColor:ACTIVE_COLOR];
 	cell.textLabel.textColor = [UIColor whiteColor];
 //	UIImage* img = [UIImage imageNamed:@"green_checkmark.png"];
 //	cell.imageView.image = img;
 	[cell setSelected:NO];
+//	cell.accessoryType = UITableViewCellAccessoryCheckmark;
 }
 
 void setCellInActive(UITableViewCell* cell) {
-	[cell setBackgroundColor:[UIColor whiteColor]];
+	[cell setBackgroundColor:INACTIVE_COLOR];
 	cell.textLabel.textColor = [UIColor blackColor];
 //	cell.imageView.image = nil;
 	[cell setSelected:NO];
+//		cell.accessoryType = UITableViewCellAccessoryNone;
 }
 
 -(void) updateAppearanceOfCell:(UITableViewCell*)cell withLabel:(NSString*)lbl {
@@ -653,10 +672,13 @@ void setCellInActive(UITableViewCell* cell) {
 - (UITableViewCell *)tableView:(UITableView *)tableView
 		 cellForRowAtIndexPath:(NSIndexPath *)indexPath {
 	
-	static NSString *simpleTableIdentifier = @"arbitraryString";
-	UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:simpleTableIdentifier];
+	static NSString *simpleTableIdentifier = @"gradientCell";
+//	UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:simpleTableIdentifier];
+	SHCTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:simpleTableIdentifier forIndexPath:indexPath];
+	cell.textLabel.backgroundColor = [UIColor clearColor];
 	if (cell == nil) {
-		cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:simpleTableIdentifier];
+//		cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:simpleTableIdentifier];
+		cell = [[SHCTableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:simpleTableIdentifier];
 	}
 	
 	NSString * lbl;
@@ -673,7 +695,8 @@ void setCellInActive(UITableViewCell* cell) {
 
 	[self updateAppearanceOfCell:cell withLabel:lbl];
 //	cell.selectionStyle = UITableViewCellSelectionStyleGray;
-	cell.selectionStyle = UITableViewCellSelectionStyleBlue;
+	[cell setSelectionStyle:UITableViewCellSelectionStyleBlue];
+	[cell setBackgroundColor:[UIColor lightGrayColor]];	//setting bg of anything IB seems feckless
 	
 //	cell.textLabel.text = [NSString stringWithFormat:@"%d", indexPath.row];
 //	cell.imageView.image = [UIImage imageNamed:@"green_checkmark.png"];
@@ -697,13 +720,24 @@ void setCellInActive(UITableViewCell* cell) {
 // logic for single and double taps (not real delegate methods)
 //--------------------------------
 
-- (void)tableView:(UITableView *)tableView didSingleTapAtIndexPath:(NSIndexPath *)indexPath {
+// happens immediately
+- (void)tableView:(UITableView *)tableView didAnyTapAtIndexPath:(NSIndexPath *)indexPath {
 	if (tableView == _labelTable0) {
 		NSString* key = [_currentLabels0 objectAtIndex:indexPath.row];
 		_selectedLabelIdx0 = indexPath;
 		_currentLabels1 = [_labelsDict objectForKey:key];
 		[_labelTable1 reloadData];
 	}
+}
+
+// happens after like .25s, when we're sure it wasn't a double tap
+- (void)tableView:(UITableView *)tableView didSingleTapAtIndexPath:(NSIndexPath *)indexPath {
+//	if (tableView == _labelTable0) {
+//		NSString* key = [_currentLabels0 objectAtIndex:indexPath.row];
+//		_selectedLabelIdx0 = indexPath;
+//		_currentLabels1 = [_labelsDict objectForKey:key];
+//		[_labelTable1 reloadData];
+//	}
 }
 
 - (void)tableView:(UITableView *)tableView didDoubleTapAtIndexPath:(NSIndexPath *)indexPath {
@@ -750,6 +784,8 @@ static NSInteger tapCount = 0;
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+	[self tableView:tableView didAnyTapAtIndexPath:indexPath];
+	
 	//checking for double taps here
 	if(tapCount == 1 && _tapTimer != nil && tappedRow == indexPath.row) {
 		//double tap - Put your double tap code here
@@ -796,7 +832,7 @@ static NSInteger tapCount = 0;
 
 
 //===============================================================
-#pragma mark MFMailComposeViewControllerDelegate
+//#pragma mark MFMailComposeViewControllerDelegate
 //===============================================================
 
 //- (IBAction)sendEmailButtonClicked :(id)sender {
@@ -826,8 +862,8 @@ static NSInteger tapCount = 0;
 //	}
 //}
 
-- (void)mailComposeController:(MFMailComposeViewController *)controller didFinishWithResult:(MFMailComposeResult)result error:(NSError *)error {
-	[controller dismissModalViewControllerAnimated:YES];
-}
+//- (void)mailComposeController:(MFMailComposeViewController *)controller didFinishWithResult:(MFMailComposeResult)result error:(NSError *)error {
+//	[controller dismissModalViewControllerAnimated:YES];
+//}
 
 @end

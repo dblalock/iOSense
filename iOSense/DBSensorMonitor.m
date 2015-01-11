@@ -185,10 +185,14 @@ NSDictionary* allSensorDefaultsDict() {
 	}
 }
 
--(void) poll {
-	[self pollLocation];
+-(void) pollMotion {
 	timestamp_t time = currentTimeStampMs();
 	_onDataReceived(dictFromMotion(_motionManager.deviceMotion), time);
+}
+
+-(void) poll {
+	[self pollLocation];
+	[self pollMotion];
 }
 
 - (void) initSensing {
@@ -206,7 +210,6 @@ NSDictionary* allSensorDefaultsDict() {
 	withHandler:^(CMDeviceMotion *motion, NSError *error) {
 		NSDictionary* data = dictFromMotion(motion);
 		timestamp_t t = timeStampFromCoreMotionTimeStamp(motion.timestamp);
-		NSLog(@"logging a CMDeviceMotion");
 		if (_onDataReceived) {
 			_onDataReceived(data, t);
 		}
@@ -218,6 +221,7 @@ NSDictionary* allSensorDefaultsDict() {
 		  fromLocation:(CLLocation *)oldLocation{
 	NSDictionary* data = dictFromLocation(newLocation);
 	timestamp_t t = timeStampFromDate(newLocation.timestamp);
+	[self pollMotion];		// ensure this still gets updated if app in bg
 	if (_onDataReceived) {
 		_onDataReceived(data, t);
 	}
@@ -227,6 +231,7 @@ NSDictionary* allSensorDefaultsDict() {
 	   didUpdateHeading:(CLHeading *)newHeading {
 	NSDictionary* data = dictFromHeading(newHeading);
 	timestamp_t t = timeStampFromDate(newHeading.timestamp);
+	[self pollMotion];		// ensure this still gets updated if app in bg
 	if (_onDataReceived) {
 		_onDataReceived(data, t);
 	}
