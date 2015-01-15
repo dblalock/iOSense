@@ -13,6 +13,7 @@
 
 +(NSString*) wrapStr:(const char*) str;
 +(void) ensureFileExists:(NSString*)fileName;
++(void) ensureDirExists:(NSString*)fileName;
 +(void) deleteFile:(NSString*)fileName;
 
 +(void) writeString:(NSString*)str toFile:(NSString*)fileName;

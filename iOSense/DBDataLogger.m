@@ -8,54 +8,26 @@
 
 #import "DBDataLogger.h"
 
-#import <DropboxSDK/DropboxSDK.h>
-
 #import "FileUtils.h"
 #import "TimeUtils.h"
 #import "MiscUtils.h"
 #import "DropboxUtils.h"
 
-//SELF: here's how we're gonna deal with logging stuff at heterogeneous
-//(and possibly variable) sampling rates:
-//	-everything pumps whatever data it's getting into a shared queue
-//		-has to have a timestamp--defaults to wall time
-//		-technically, just write data via performSelectorOnMainThread so
-//		that we don't actually have to deal with a message queue
-//	-when it's time to flush stuff (every ~2s):
-//		1) put stuff into a list ordered by timestamp
-//			-prolly only flush up to ~2s ago, not present, by default
-//			-if something from last flush (too early) is there, throw it away
-//		2) consume crap in fixed time chunks based on a global sampling rate
-//			-eg, eat up all the data in a 5ms chunk of timestamps for 20Hz
-//			-fill in data not specified with value from previous sample
-//			-prolly just use latest value if >1 specified, but ideally average
-//	-have to initially set named signals it's logging so csv, etc, can have
-//	consistent dims and so we know what to auto-fill
-//		-also have to initially set default values for very 1st sample
-//			-actually, no, nil works for everything
-//
-//	-maybe have option to specify sampling rates for each signal
-//		-if it knows this, can put in time stamps automatically
-//	-make sure that current state of signals persists across flushes so we
-//	don't end up with a bunch of zeros or whatever once the user hits
-//	"stop recording" (gps, etc, may only get 1 update during app lifetime)
-//
-//	-possibly better plan: just do the 1st part (dumping stuff) and write
-//	a python script that does parts 2 and 3 (the ordering/combining)
-
 static NSString *const kKeyTimeStamp = @"timestamp";
 static NSString *const kDefaultLogName = @"log";
+static NSString *const kDefaultLogSubdir = @"";
 static NSString *const kLogNameAndDateSeparator = @"__";
 static NSString *const kCsvSeparator = @",";	//no space -> slightly smaller
 static NSString *const kLogFileExt = @".csv";
-static NSString *const kNanStr = @"";
+static NSString *const kNanStr = @"nan";
+static NSString *const kNoChangeStr = @"";
 //static const uint kFloatDecimalPlaces = 3;
 static NSString *const kFloatFormat = @"%.3f";	// log only 3 decimal places (bad for lat/lon...)
 static NSString *const kIntFormat = @"%d";
 static const timestamp_t kDefaultGapThresholdMs = 2*1000;	//2s
 static const timestamp_t kDefaultTimeStamp = -1;
 
-@interface DBDataLogger () <DBRestClientDelegate>
+@interface DBDataLogger ()
 
 //TODO I think we only really need currentSample and indexes
 @property(strong, nonatomic) NSArray* allSignalNames;
@@ -80,7 +52,7 @@ static const timestamp_t kDefaultTimeStamp = -1;
 @property(nonatomic) BOOL shouldAppendToLog;
 
 // dropbox client
-@property (strong, nonatomic) DBRestClient *restClient;
+//@property (strong, nonatomic) DBRestClient *restClient;
 
 @end
 
@@ -134,10 +106,11 @@ NSArray* sortedByTimeStamp(NSArray* data) {
 		
 		// file stuff
 		_logName = kDefaultLogName;
+		_logSubdir = kDefaultLogSubdir;
 		
 		// dropbox stuff
-		_restClient = [[DBRestClient alloc] initWithSession:[DBSession sharedSession]];
-		_restClient.delegate = self;
+//		_restClient = [[DBRestClient alloc] initWithSession:[DBSession sharedSession]];
+//		_restClient.delegate = self;
 		
 		// time stuff
 		_samplingPeriodMs = ms;
@@ -162,17 +135,9 @@ NSArray* sortedByTimeStamp(NSArray* data) {
 		return;
 	}
 	
-	// try to connect to dropbox if not connected
-//	if (![[DBSession sharedSession] isLinked]) {
-//		[[DBSession sharedSession] linkUserId:@"376468848" fromController:getRootViewController()];
-//	}
-	
 	NSMutableDictionary* sample = [kvPairs mutableCopy];
 	[sample setObject:@(ms) forKey:kKeyTimeStamp];
 	[_data addObject:sample];
-	
-//	NSLog(@"logging sample: %@", kvPairs);
-//	NSLog(@"logData: current _data: %@", _data);
 	
 	_latestTimeStamp = MAX(_latestTimeStamp, ms);
 	if (_latestTimeStamp - _lastFlushTimeMs > _autoFlushLagMs) {
@@ -194,11 +159,11 @@ NSArray* sortedByTimeStamp(NSArray* data) {
 		return;
 	}
 	
-	int numSamples = [sampleDicts count];
-	int finalIdx = numSamples - 1;
-	for (int i = 0; i < numSamples; i++) {
-		int stepsFromEnd = finalIdx - i;
-		int timeFromEnd = stepsFromEnd * periodMs;
+	long numSamples = [sampleDicts count];
+	long finalIdx = numSamples - 1;
+	for (long i = 0; i < numSamples; i++) {
+		long stepsFromEnd = finalIdx - i;
+		long timeFromEnd = stepsFromEnd * periodMs;
 		timestamp_t t = ms - timeFromEnd;
 		
 		[self logData:sampleDicts[i] withTimeStamp:t];
@@ -217,7 +182,7 @@ NSArray* sortedByTimeStamp(NSArray* data) {
 // crammed into one array
 NSArray* rawArrayToSampleBuff(id* array, int len, NSArray* keys) {
 	NSMutableArray* buff = [NSMutableArray array];
-	int numKeys = [keys count];
+	long numKeys = [keys count];
 	for (int i = 0; i < len; i+= numKeys) {
 		NSDictionary* sample = [NSDictionary dictionary];
 		for (id key in keys) {
@@ -334,7 +299,7 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 		}
 	}
 	NSString* line = [[fmtVals componentsJoinedByString:kCsvSeparator] stringByAppendingString:@"\n"];
-	NSLog(@"writing line: %@", line);
+//	NSLog(@"writing line: %@", line);
 	NSData *data = [line dataUsingEncoding:NSUTF8StringEncoding];
 	[stream write:data.bytes maxLength:data.length];
 }
@@ -473,6 +438,7 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 }
 
 -(void) setLogName:(NSString *)logName {
+	if (logName == _logName) return;
 	if (_isLogging) {
 		[self endLog];
 		_logName = logName;
@@ -482,10 +448,31 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 	}
 }
 
+-(void) setLogSubdir:(NSString *)logSubdir {
+	if (logSubdir == _logSubdir) return;
+	if (_isLogging) {
+		[self endLog];
+		_logSubdir = logSubdir;
+		[self startLog];
+	} else {
+		_logSubdir = logSubdir;
+	}
+}
+
 -(NSString*) generateLogFilePath {
-	NSString* logPath = [FileUtils getFullFileName:_logName];
+	NSString* logPath;
+	NSLog(@"logSubdir = %@", _logSubdir);
+//	if (_logSubdir) {
+//		logPath = [_logSubdir stringByAppendingPathComponent:_logName];
+//	} else {
+//		logPath = _logName;
+//	}
+	logPath = [FileUtils getFullFileName:_logSubdir];
+	[FileUtils ensureDirExists:logPath];
+	logPath = [logPath stringByAppendingPathComponent:_logName];
 	logPath = [logPath stringByAppendingString:kLogNameAndDateSeparator];
 	logPath = [logPath stringByAppendingString:currentTimeStrForFileName()];
+	NSLog(@"logPath = %@", logPath);
 	return [logPath stringByAppendingString:kLogFileExt];
 }
 
@@ -513,7 +500,8 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 	[self pauseLog];
 	_shouldAppendToLog = NO;
 	
-	uploadTextFile(_logPath, [_logPath lastPathComponent], nil);
+	NSString* dbPath = [_logSubdir stringByAppendingPathComponent:[_logPath lastPathComponent]];
+	uploadTextFile(_logPath, dbPath, nil);
 }
 -(void) deleteLog {
 	[self endLog];

@@ -20,6 +20,7 @@
 @property(nonatomic) timestamp_t autoFlushLagMs;
 @property(nonatomic) timestamp_t gapThresholdMs;
 @property(strong, nonatomic) NSString* logName;
+@property(strong, nonatomic) NSString* logSubdir;
 
 -(id) initWithSignalNames:(NSArray*)names
 			defaultValues:(NSArray*)defaults

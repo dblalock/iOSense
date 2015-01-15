@@ -34,15 +34,15 @@ void uploadTextFile(NSString* localPath, NSString* dropboxPath, void(^responseHa
 	NSURL *URL = [NSURL URLWithString:destUrlStr];
 	NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:URL];
 	
-	// configure http request; note that this assumes there's a "getAccKey()"
+	// configure http request; note that this assumes there's a "getK()"
 	// method that returns your generated access key (a huge string) in a file
 	// called DropBoxInfo.h. I deliberatly didn't check this into this repo
 	// in order to keep my keep secret
 	[request setHTTPMethod:@"PUT"];		// necessary for it to work with files_put
 	[request setHTTPBody:data];
-	[request setValue:[NSString stringWithFormat:@"%u",[data length]] forHTTPHeaderField:@"Content-Length"];
+	[request setValue:[NSString stringWithFormat:@"%lu",(unsigned long)[data length]] forHTTPHeaderField:@"Content-Length"];
 	[request setValue:@"text/plain" forHTTPHeaderField:@"Content-Type"];
-	NSString* auth = [NSString stringWithFormat:@"Bearer %@", _k_];	//just a const
+	NSString* auth = [NSString stringWithFormat:@"Bearer %@", getK()];	//just a const
 	[request setValue:auth forHTTPHeaderField:@"Authorization"];
 	
 	// not at all the right way to initialize an operation queue

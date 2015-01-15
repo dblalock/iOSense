@@ -26,7 +26,7 @@
 #define KEY_USER_ID	@"userId"
 #define KEY_TAGS	@"labels"
 #define DEFAULT_VALUE_ACCEL DBINVALID_ACCEL
-#define DEFAULT_VALUE_USER @"None"
+#define DEFAULT_VALUE_USER @"users/__UNKNOWN__"
 #define DEFAULT_VALUE_TAGS @"None"
 
 #define ALL_LOCAL_KEYS (@[KEY_WATCH_X, KEY_WATCH_Y, KEY_WATCH_Z, KEY_USER_ID, KEY_TAGS]);
@@ -140,7 +140,8 @@ NSArray* allDataDefaultValues() {
     [super viewDidLoad];
 	
 	// background img
-	self.view.backgroundColor = [UIColor colorWithPatternImage: [UIImage imageNamed:@"inflicted.png"]];
+//	self.view.backgroundColor = [UIColor colorWithPatternImage: [UIImage imageNamed:@"inflicted.png"]];
+	self.view.backgroundColor = [UIColor colorWithPatternImage: [UIImage imageNamed:@"light_honeycomb.png"]];
 	
 	// not-as-hideous tableview cells
 	for (UITableView* table in @[_labelTable0, _labelTable1, _labelTable2]) {
@@ -166,6 +167,7 @@ NSArray* allDataDefaultValues() {
 											  defaultValues:allDataDefaultValues()
 											   samplePeriod:DATALOGGING_PERIOD_MS];
 	_dataLogger.autoFlushLagMs = 2000;	//write every 2s
+	_dataLogger.logSubdir = [self userIdOrDefaultValue];
 	_sensorMonitor = [[DBSensorMonitor alloc] initWithDataReceivedHandler:^
 		void(NSDictionary *data, timestamp_t timestamp) {
 			dispatch_async(dispatch_get_main_queue(), ^{	//main thread
@@ -315,6 +317,11 @@ NSArray* sanitizeTagsForCsv(NSArray* ar) {
 		sanitized[i] = sanitizeTagForCsv(ar[i]);
 	}
 	return sanitized;
+}
+
+- (NSString*) userIdOrDefaultValue {
+	NSString* userId = [self readUserId];
+	return [userId length] ? userId : DEFAULT_VALUE_USER;
 }
 
 - (NSString*) readUserId {
@@ -571,7 +578,7 @@ void setCellInActive(UITableViewCell* cell) {
 		return YES;
 	}
 	
-	UIAlertController * alert=   [UIAlertController
+	UIAlertController * alert = [UIAlertController
 								  alertControllerWithTitle:@"Really change ID?"
 								  message:@"Changing User ID if you're not a different person will ruin everything ever."
 								  preferredStyle:UIAlertControllerStyleAlert];
@@ -596,6 +603,12 @@ void setCellInActive(UITableViewCell* cell) {
 	
 	[self presentViewController:alert animated:YES completion:nil];
 	return NO;	//returns immediately, so retval can't be set by alert directly
+}
+
+-(void) textFieldDidEndEditing:(UITextField *)textField {
+	if (textField == _userIdText) {
+		[_dataLogger setLogSubdir:[self userIdOrDefaultValue]];
+	}
 }
 
 //===============================================================

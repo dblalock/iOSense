@@ -155,7 +155,9 @@ NSString *const KEY_LONGITUDE = @"lon";					// deg
 NSString *const KEY_ALTITUDE = @"alt";					// m
 NSString *const KEY_HORIZONTAL_ACC = @"horzAcc";		// m
 NSString *const KEY_VERTICAL_ACC   = @"vertAcc";		// m
+#ifndef ANONYMIZE
 NSString *const KEY_BUILDING_FLOOR = @"floor";			// int, floor number
+#endif
 NSString *const KEY_COURSE = @"course";					// deg
 NSString *const KEY_SPEED = @"speed";					// m/s
 NSString *const KEY_LOCATION_UPDATE_HASH = @"locHash";	// 0-999 value identifying an update
@@ -163,7 +165,9 @@ NSString *const KEY_LOCATION_UPDATE_HASH = @"locHash";	// 0-999 value identifyin
 // heading
 NSString *const KEY_HEADING_ACC = @"headAcc";	// deg
 NSString *const KEY_MAG_HEADING  = @"magHead";	// deg
+#ifndef ANONYMIZE
 NSString *const KEY_TRUE_HEADING = @"truHead";	// deg
+#endif
 NSString *const KEY_HEADING_X = @"headX";		// (uTesla)
 NSString *const KEY_HEADING_Y = @"headY";		// (uTesla)
 NSString *const KEY_HEADING_Z = @"headZ";		// (uTesla)
@@ -193,6 +197,11 @@ int hashTimeStamp(timestamp_t t) {
 static BOOL changeAboveThresh(double old, double new, double thresh) {
 	return fabs(old - new) >= thresh;
 }
+
+//static NSDictionary* extractChanges(NSDictionary* oldDict, NSDictionary* newDict, NSDictionary* thresholds) {
+//	//TODO dict of change thresholds for each data type...
+//		//we'll have to do this before making lat and lon intro strings
+//}
 
 //================================================================
 // Dictionary creation funcs
@@ -225,7 +234,9 @@ NSDictionary* defaultsDictLocation() {
 				KEY_ALTITUDE : DBINVALID_DISTANCE,
 				KEY_HORIZONTAL_ACC: DBINVALID_ACCURACY_LOC,
 				KEY_VERTICAL_ACC: DBINVALID_ACCURACY_LOC,
+#ifndef ANONYMIZE
 				KEY_BUILDING_FLOOR: DBINVALID_FLOOR,
+#endif
 				KEY_COURSE: DBINVALID_ANGLE,
 				KEY_SPEED: DBINVALID_SPEED,
 				KEY_LOCATION_UPDATE_HASH: DBINVALID_HASH};
@@ -235,7 +246,9 @@ NSDictionary* defaultsDictLocation() {
 NSDictionary* defaultsDictHeading() {
 	return @{	KEY_HEADING_ACC:  DBINVALID_ACCURACY_HEADING,
 				KEY_MAG_HEADING:  DBINVALID_ANGLE,	//to magnetic north
+#ifndef ANONYMIZE
 				KEY_TRUE_HEADING: DBINVALID_ANGLE,	//to true north
+#endif
 				KEY_HEADING_X: DBINVALID_HEADING,
 				KEY_HEADING_Y: DBINVALID_HEADING,
 				KEY_HEADING_Z: DBINVALID_HEADING,
@@ -294,7 +307,9 @@ NSDictionary* dictFromLocation(CLLocation* location) {
 				KEY_ALTITUDE : @((int)alt),
 				KEY_HORIZONTAL_ACC: @((int)location.horizontalAccuracy),
 				KEY_VERTICAL_ACC:	@((int)location.verticalAccuracy),
+#ifndef ANONYMIZE
 				KEY_BUILDING_FLOOR: @(floor),
+#endif
 				KEY_COURSE: @(location.course),
 				KEY_SPEED: @(location.speed),
 				KEY_LOCATION_UPDATE_HASH: @(hashTimeStamp(timeStampFromDate(location.timestamp)))};
@@ -305,13 +320,15 @@ NSDictionary* dictFromHeading(CLHeading* heading) {
 	if (! headingValid(heading) ) {
 		return defaultsDictHeading();
 	}
-	double trueHeading = heading.trueHeading;
-#ifdef ANONYMIZE
-	trueHeading = NAN;
-#endif
+//	double trueHeading = heading.trueHeading;
+//#ifdef ANONYMIZE
+//	trueHeading = NAN;
+//#endif
 	return @{	KEY_HEADING_ACC:  @((int)heading.headingAccuracy),
 				KEY_MAG_HEADING: @((int)heading.magneticHeading),	//to magnetic north
-				KEY_TRUE_HEADING:@((int)trueHeading),				//to true north
+#ifndef ANONYMIZE
+				KEY_TRUE_HEADING:@((int)heading.trueHeading),				//to true north
+#endif
 				KEY_HEADING_X: @((int)heading.x),
 				KEY_HEADING_Y: @((int)heading.y),
 				KEY_HEADING_Z: @((int)heading.z),

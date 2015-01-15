@@ -8,13 +8,14 @@
 
 #import "AppDelegate.h"
 //#import <PebbleKit/PebbleKit.h>
-#import <DropboxSDK/DropboxSDK.h>
+//#import <DropboxSDK/DropboxSDK.h>
 
 #import "DropBoxInfo.h"
 
-@interface AppDelegate() <DBSessionDelegate, DBNetworkRequestDelegate> {
-	NSString *relinkUserId;
-}
+//@interface AppDelegate() <DBSessionDelegate, DBNetworkRequestDelegate> {
+//	NSString *relinkUserId;
+//}
+@interface AppDelegate()
 
 @end
 
@@ -91,47 +92,47 @@
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
 }
 
-#pragma mark -
-#pragma mark DBSessionDelegate methods
-
-- (void)sessionDidReceiveAuthorizationFailure:(DBSession*)session userId:(NSString *)userId {
-	relinkUserId = userId;
-	[[[UIAlertView alloc]
-	   initWithTitle:@"Dropbox Session Ended" message:@"Do you want to relink (won't do anything)?" delegate:self
-	   cancelButtonTitle:@"Cancel" otherButtonTitles:@"Relink", nil]
-	 show];
-}
-
-
-#pragma mark -
-#pragma mark UIAlertViewDelegate methods
-
-- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)index {
-//	if (index != alertView.cancelButtonIndex) {
-//		[[DBSession sharedSession] linkUserId:relinkUserId fromController:rootViewController];
+//#pragma mark -
+//#pragma mark DBSessionDelegate methods
+//
+//- (void)sessionDidReceiveAuthorizationFailure:(DBSession*)session userId:(NSString *)userId {
+//	relinkUserId = userId;
+//	[[[UIAlertView alloc]
+//	   initWithTitle:@"Dropbox Session Ended" message:@"Do you want to relink (won't do anything)?" delegate:self
+//	   cancelButtonTitle:@"Cancel" otherButtonTitles:@"Relink", nil]
+//	 show];
+//}
+//
+//
+//#pragma mark -
+//#pragma mark UIAlertViewDelegate methods
+//
+//- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)index {
+////	if (index != alertView.cancelButtonIndex) {
+////		[[DBSession sharedSession] linkUserId:relinkUserId fromController:rootViewController];
+////	}
+//	relinkUserId = nil;
+//}
+//
+//
+//#pragma mark -
+//#pragma mark DBNetworkRequestDelegate methods
+//
+//static int outstandingRequests;
+//
+//- (void)networkRequestStarted {
+//	outstandingRequests++;
+//	if (outstandingRequests == 1) {
+//		[[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:YES];
 //	}
-	relinkUserId = nil;
-}
-
-
-#pragma mark -
-#pragma mark DBNetworkRequestDelegate methods
-
-static int outstandingRequests;
-
-- (void)networkRequestStarted {
-	outstandingRequests++;
-	if (outstandingRequests == 1) {
-		[[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:YES];
-	}
-}
-
-- (void)networkRequestStopped {
-	outstandingRequests--;
-	if (outstandingRequests == 0) {
-		[[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:NO];
-	}
-}
+//}
+//
+//- (void)networkRequestStopped {
+//	outstandingRequests--;
+//	if (outstandingRequests == 0) {
+//		[[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:NO];
+//	}
+//}
 
 
 @end

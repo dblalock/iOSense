@@ -22,7 +22,10 @@ static const NSStringEncoding kENCODING = NSUTF8StringEncoding;
 
 +(NSString*) getFullFileName:(NSString*)fileName {
 	if ([fileName rangeOfString:[FileUtils docsDirectory]].location == 0) return fileName;
-	return [[FileUtils docsDirectory] stringByAppendingPathComponent:fileName];
+	if ([fileName length]) {
+		return [[FileUtils docsDirectory] stringByAppendingPathComponent:fileName];
+	}
+	return [FileUtils docsDirectory];
 }
 
 +(void) ensureFileExists:(NSString*)fileName {
@@ -30,6 +33,13 @@ static const NSStringEncoding kENCODING = NSUTF8StringEncoding;
 		NSLog(@"file %@ didn't exist, creating it", fileName);
         [[NSFileManager defaultManager] createFileAtPath:fileName contents:nil attributes:nil];
     }
+}
+
++(void) ensureDirExists:(NSString*)fileName {
+	if (![[NSFileManager defaultManager] fileExistsAtPath:fileName]) {
+		NSLog(@"directory %@ didn't exist, creating it", fileName);
+		[[NSFileManager defaultManager] createDirectoryAtPath:fileName withIntermediateDirectories:YES attributes:nil error:nil];
+	}
 }
 
 +(void) deleteFile:(NSString*)fileName {
