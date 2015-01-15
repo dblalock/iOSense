@@ -8,8 +8,12 @@
 
 #import "DBDataLogger.h"
 
+#import <DropboxSDK/DropboxSDK.h>
+
 #import "FileUtils.h"
 #import "TimeUtils.h"
+#import "MiscUtils.h"
+#import "DropboxUtils.h"
 
 //SELF: here's how we're gonna deal with logging stuff at heterogeneous
 //(and possibly variable) sampling rates:
@@ -45,13 +49,13 @@ static NSString *const kLogNameAndDateSeparator = @"__";
 static NSString *const kCsvSeparator = @",";	//no space -> slightly smaller
 static NSString *const kLogFileExt = @".csv";
 static NSString *const kNanStr = @"";
-static const uint kFloatDecimalPlaces = 3;
+//static const uint kFloatDecimalPlaces = 3;
 static NSString *const kFloatFormat = @"%.3f";	// log only 3 decimal places (bad for lat/lon...)
 static NSString *const kIntFormat = @"%d";
 static const timestamp_t kDefaultGapThresholdMs = 2*1000;	//2s
 static const timestamp_t kDefaultTimeStamp = -1;
 
-@interface DBDataLogger ()
+@interface DBDataLogger () <DBRestClientDelegate>
 
 //TODO I think we only really need currentSample and indexes
 @property(strong, nonatomic) NSArray* allSignalNames;
@@ -69,10 +73,14 @@ static const timestamp_t kDefaultTimeStamp = -1;
 @property(nonatomic) timestamp_t latestTimeStamp;
 @property(nonatomic) timestamp_t prevLastSampleTimeWritten;
 
+@property(strong, nonatomic) NSString* logPath;
 @property(strong, nonatomic) NSOutputStream* stream;
 
 @property(nonatomic) BOOL isLogging;
 @property(nonatomic) BOOL shouldAppendToLog;
+
+// dropbox client
+@property (strong, nonatomic) DBRestClient *restClient;
 
 @end
 
@@ -127,6 +135,10 @@ NSArray* sortedByTimeStamp(NSArray* data) {
 		// file stuff
 		_logName = kDefaultLogName;
 		
+		// dropbox stuff
+		_restClient = [[DBRestClient alloc] initWithSession:[DBSession sharedSession]];
+		_restClient.delegate = self;
+		
 		// time stuff
 		_samplingPeriodMs = ms;
 		_autoFlushLagMs = maxTimeStampMs();
@@ -149,6 +161,11 @@ NSArray* sortedByTimeStamp(NSArray* data) {
 	} else if (ms <= _lastFlushTimeMs) { //we'll just ignore it later anyway
 		return;
 	}
+	
+	// try to connect to dropbox if not connected
+//	if (![[DBSession sharedSession] isLinked]) {
+//		[[DBSession sharedSession] linkUserId:@"376468848" fromController:getRootViewController()];
+//	}
 	
 	NSMutableDictionary* sample = [kvPairs mutableCopy];
 	[sample setObject:@(ms) forKey:kKeyTimeStamp];
@@ -476,8 +493,8 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 	if (_isLogging) return;
 	_isLogging = YES;
 	
-	NSString* logPath = [self generateLogFilePath];
-	_stream = [[NSOutputStream alloc] initToFileAtPath:logPath append:_shouldAppendToLog];
+	_logPath = [self generateLogFilePath];
+	_stream = [[NSOutputStream alloc] initToFileAtPath:_logPath append:_shouldAppendToLog];
 	[_stream open];
 	
 	// write signal names as first line
@@ -495,6 +512,8 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 -(void) endLog {
 	[self pauseLog];
 	_shouldAppendToLog = NO;
+	
+	uploadTextFile(_logPath, [_logPath lastPathComponent], nil);
 }
 -(void) deleteLog {
 	[self endLog];

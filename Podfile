@@ -8,3 +8,5 @@ target 'iOSense' do
 end
 
 pod 'PebbleKit'
+
+pod 'SSKeychain'

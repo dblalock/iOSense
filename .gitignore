@@ -28,3 +28,6 @@ DerivedData
 #
 # Pods/
 Podfile.lock
+
+# dropbox app stuff
+*DropBoxInfo.h

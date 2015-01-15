@@ -72,4 +72,16 @@ static const NSStringEncoding kENCODING = NSUTF8StringEncoding;
 	return [[NSString alloc] initWithData:[NSData dataWithContentsOfFile:fullFileName] encoding:kENCODING];
 }
 
++(BOOL) fileEmpty:(NSString*)path {
+	NSFileManager *manager = [NSFileManager defaultManager];
+	if ([manager fileExistsAtPath:path]) {
+		NSDictionary *attributes = [manager attributesOfItemAtPath:path error:nil];
+		unsigned long long size = [attributes fileSize];
+		if (attributes && size == 0) {
+			return YES;
+		}
+	}
+	return NO;
+}
+
 @end

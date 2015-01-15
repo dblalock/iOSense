@@ -23,6 +23,6 @@
 
 +(NSString*) readStringFromFile:(NSString*)fileName;
 
-
++(BOOL) fileEmpty:(NSString*)fileName;
 
 @end

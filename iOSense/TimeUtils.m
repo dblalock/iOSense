@@ -72,6 +72,8 @@ NSDateFormatter* isoDateFormatter() {
 }
 
 // like the above, but underscores instead of colons
+// XXX: except the ZZZZZ will end up having a colon in it...this needs to
+// get fixed if I'm going to actually use this anywhere...
 NSDateFormatter* isoDateFormatterForFileName() {
 	NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
 	NSLocale *enUSPOSIXLocale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
@@ -87,7 +89,9 @@ NSString* currentTimeStr() {
 }
 
 NSString* currentTimeStrForFileName() {
-	NSDate *now = [NSDate date];
-	NSString *iso8601String = [isoDateFormatterForFileName() stringFromDate:now];
+//	NSDate *now = [NSDate date];
+//	NSString *iso8601String = [isoDateFormatterForFileName() stringFromDate:now];
+	NSString* iso8601String = currentTimeStr();
+	iso8601String = [iso8601String stringByReplacingOccurrencesOfString:@":" withString:@"_"];
 	return iso8601String;
 }

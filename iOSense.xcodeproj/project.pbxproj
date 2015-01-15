@@ -35,6 +35,10 @@
 		727FA1621A60BBFC00420305 /* TimeUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 727FA1521A60BBFC00420305 /* TimeUtils.m */; };
 		727FA1631A60BBFC00420305 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 727FA1541A60BBFC00420305 /* ViewController.m */; };
 		72AD836F1A61F85C007720ED /* SHCTableViewCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 72AD836E1A61F85C007720ED /* SHCTableViewCell.m */; };
+		72AD83741A630D05007720ED /* MiscUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 72AD83731A630D05007720ED /* MiscUtils.m */; };
+		72AD83761A6311C7007720ED /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 72AD83751A6311C7007720ED /* Security.framework */; };
+		72AD83791A637C78007720ED /* DropboxSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 72AD83781A637C78007720ED /* DropboxSDK.framework */; };
+		72D3BFAC1A67606600648A67 /* DropboxUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 72D3BFAB1A67606600648A67 /* DropboxUtils.m */; };
 		A191730F992B3C8F599F57F4 /* libPods.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E7238C615B2AEDEADA96C4D /* libPods.a */; };
 /* End PBXBuildFile section */
 
@@ -81,6 +85,13 @@
 		727FA1541A60BBFC00420305 /* ViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
 		72AD836D1A61F85C007720ED /* SHCTableViewCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHCTableViewCell.h; sourceTree = "<group>"; };
 		72AD836E1A61F85C007720ED /* SHCTableViewCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SHCTableViewCell.m; sourceTree = "<group>"; };
+		72AD83721A630C6F007720ED /* MiscUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MiscUtils.h; sourceTree = "<group>"; };
+		72AD83731A630D05007720ED /* MiscUtils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MiscUtils.m; sourceTree = "<group>"; };
+		72AD83751A6311C7007720ED /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		72AD83771A633AD5007720ED /* DropboxInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DropboxInfo.h; sourceTree = "<group>"; };
+		72AD83781A637C78007720ED /* DropboxSDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = DropboxSDK.framework; sourceTree = "<group>"; };
+		72B3303F1A67483100216764 /* DropboxUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DropboxUtils.h; sourceTree = "<group>"; };
+		72D3BFAB1A67606600648A67 /* DropboxUtils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DropboxUtils.m; sourceTree = "<group>"; };
 		99814588A791C3485A24932E /* Pods.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.debug.xcconfig; path = "Pods/Target Support Files/Pods/Pods.debug.xcconfig"; sourceTree = "<group>"; };
 		9E7238C615B2AEDEADA96C4D /* libPods.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPods.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -90,7 +101,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				72AD83761A6311C7007720ED /* Security.framework in Frameworks */,
 				10BAB80C190726A700993020 /* CFNetwork.framework in Frameworks */,
+				72AD83791A637C78007720ED /* DropboxSDK.framework in Frameworks */,
 				10BAB80D190726A700993020 /* CoreBluetooth.framework in Frameworks */,
 				10BAB80E190726A700993020 /* CoreMotion.framework in Frameworks */,
 				10BAB80F190726A700993020 /* ExternalAccessory.framework in Frameworks */,
@@ -129,6 +142,8 @@
 		10BAB7CC1907260100993020 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				72AD83781A637C78007720ED /* DropboxSDK.framework */,
+				72AD83751A6311C7007720ED /* Security.framework */,
 				10BAB806190726A700993020 /* CFNetwork.framework */,
 				10BAB807190726A700993020 /* CoreBluetooth.framework */,
 				10BAB808190726A700993020 /* CoreMotion.framework */,
@@ -169,8 +184,6 @@
 				727FA1421A60BBFC00420305 /* DBSensorMonitor.m */,
 				727FA1431A60BBFC00420305 /* iOSense.entitlements */,
 				727FA1441A60BBFC00420305 /* InfoPlist.strings */,
-				727FA1461A60BBFC00420305 /* FileUtils.h */,
-				727FA1471A60BBFC00420305 /* FileUtils.m */,
 				727FA1481A60BBFC00420305 /* GraphView.h */,
 				727FA1491A60BBFC00420305 /* GraphView.m */,
 				72AD836D1A61F85C007720ED /* SHCTableViewCell.h */,
@@ -186,6 +199,13 @@
 				727FA1501A60BBFC00420305 /* main.m */,
 				727FA1511A60BBFC00420305 /* TimeUtils.h */,
 				727FA1521A60BBFC00420305 /* TimeUtils.m */,
+				72AD83721A630C6F007720ED /* MiscUtils.h */,
+				72AD83731A630D05007720ED /* MiscUtils.m */,
+				727FA1461A60BBFC00420305 /* FileUtils.h */,
+				727FA1471A60BBFC00420305 /* FileUtils.m */,
+				72B3303F1A67483100216764 /* DropboxUtils.h */,
+				72D3BFAB1A67606600648A67 /* DropboxUtils.m */,
+				72AD83771A633AD5007720ED /* DropboxInfo.h */,
 			);
 			path = iOSense;
 			sourceTree = "<group>";
@@ -305,7 +325,9 @@
 				727FA1571A60BBFC00420305 /* DBDataLogger.m in Sources */,
 				727FA1581A60BBFC00420305 /* DBSensorMonitor.m in Sources */,
 				727FA1601A60BBFC00420305 /* Labels.m in Sources */,
+				72AD83741A630D05007720ED /* MiscUtils.m in Sources */,
 				727FA1611A60BBFC00420305 /* main.m in Sources */,
+				72D3BFAC1A67606600648A67 /* DropboxUtils.m in Sources */,
 				727FA1621A60BBFC00420305 /* TimeUtils.m in Sources */,
 				72AD836F1A61F85C007720ED /* SHCTableViewCell.m in Sources */,
 				727FA15B1A60BBFC00420305 /* FileUtils.m in Sources */,
@@ -416,12 +438,14 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"/Users/davis/pebble-dev/PebbleSDK-2.7/pebble-ios-sdk",
+					"$(PROJECT_DIR)",
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "iOSense/iOSense-Prefix.pch";
 				INFOPLIST_FILE = "$(SRCROOT)/iOSense/iOSense-Info.plist";
 				OTHER_LDFLAGS = (
 					"-ObjC",
+					"-l\"Pods-SSKeychain\"",
 					"-l\"Pods-PebbleKit\"",
 					"-l\"z\"",
 					"-framework",
@@ -455,12 +479,14 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"/Users/davis/pebble-dev/PebbleSDK-2.7/pebble-ios-sdk",
+					"$(PROJECT_DIR)",
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "iOSense/iOSense-Prefix.pch";
 				INFOPLIST_FILE = "$(SRCROOT)/iOSense/iOSense-Info.plist";
 				OTHER_LDFLAGS = (
 					"-ObjC",
+					"-l\"Pods-SSKeychain\"",
 					"-l\"Pods-PebbleKit\"",
 					"-l\"z\"",
 					"-framework",

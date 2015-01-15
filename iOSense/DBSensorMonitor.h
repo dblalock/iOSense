@@ -26,6 +26,7 @@
 #define DBINVALID_ACCURACY_LOC		NONSENSICAL_NUMBER	//@(-1)
 
 // location defaults (not covered by above)
+#define DBINVALID_DISTANCE          NONSENSICAL_NUMBER
 #define DBINVALID_FLOOR				NONSENSICAL_NUMBER
 #define DBINVALID_SPEED				NONSENSICAL_NUMBER	//@(-1)
 
@@ -41,8 +42,9 @@
 @interface DBSensorMonitor : NSObject
 
 @property (nonatomic, copy) void (^onDataReceived)(NSDictionary* data, timestamp_t timestamp);
+// @property (nonatomic) anonymize;
 
--(id) initWithDataReceivedHandler:(void (^)(NSDictionary* data, timestamp_t timestamp))handler;
+-(instancetype) initWithDataReceivedHandler:(void (^)(NSDictionary* data, timestamp_t timestamp))handler;
 -(void) poll;	//force update
 -(void) pollLocation;	//force update of only location / heading
 
