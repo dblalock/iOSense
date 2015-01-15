@@ -31,3 +31,4 @@ Podfile.lock
 
 # dropbox app stuff
 *DropBoxInfo.h
+DropboxSDK.framework
