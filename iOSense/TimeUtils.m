@@ -68,17 +68,21 @@ NSDateFormatter* isoDateFormatter() {
 //	[dateFormatter setLocale:[NSLocale currentLocale]];
 	NSLocale *enUSPOSIXLocale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
 	[dateFormatter setLocale:enUSPOSIXLocale];
+	[dateFormatter setTimeZone:[NSTimeZone localTimeZone]];
 	[dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ssZZZZZ"];
 	return dateFormatter;
 }
 
-// like the above, but underscores instead of colons
-// XXX: except the ZZZZZ will end up having a colon in it...this needs to
-// get fixed if I'm going to actually use this anywhere...
+// like the above, but underscores instead of colons; however, the ZZZZZ
+// will end up having a colon in it, so this isn't safe for other funcs to
+// use (only used in currentTimeStrForFileName(), below, which deals with
+// this behavior)
 NSDateFormatter* isoDateFormatterForFileName() {
-	NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-	NSLocale *enUSPOSIXLocale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
-	[dateFormatter setLocale:enUSPOSIXLocale];
+	NSDateFormatter *dateFormatter = isoDateFormatter();
+//	NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+//	NSLocale *enUSPOSIXLocale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+//	[dateFormatter setLocale:enUSPOSIXLocale];
+//	[dateFormatter setTimeZone:[NSTimeZone localTimeZone]];
 	[dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH_mm_ssZZZZZ"];
 	return dateFormatter;
 }

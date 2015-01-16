@@ -6,19 +6,14 @@
 //  Copyright (c) 2015 D Blalock. All rights reserved.
 //
 
-//TODO
-//	-figure out why this sometimes has a timestamp of 0...
-//	-figure out why it doesn't think that timestamps are changing
-//		-according to the array it's getting, they're not...
-
-
-
 #import "DBDataLogger.h"
 
 #import "FileUtils.h"
 #import "TimeUtils.h"
 #import "MiscUtils.h"
-#import "DropboxUtils.h"
+#import "DropboxUploader.h"
+
+#define LOG_DIFFERENTIAL_TIMESTAMPS
 
 static NSUInteger const kTimeStampIndex = 0;
 static NSString *const kKeyTimeStamp = @"timestamp";
@@ -310,13 +305,9 @@ id valToWriteForVal(id val) {
 
 -(void) writeSampleValues:(NSArray*)values toStream:(NSOutputStream*)stream {
 	NSMutableArray* fmtVals = [NSMutableArray arrayWithCapacity:[values count]];
-	long i = 0;
 	
-	NSString* prevLine = [[_prevWrittenVals componentsJoinedByString:kCsvSeparator] stringByAppendingString:@"\n"];
+//	NSString* prevLine = [[_prevWrittenVals componentsJoinedByString:kCsvSeparator] stringByAppendingString:@"\n"];
 //	NSLog(@"prev line:\n%@", prevLine);
-	
-	
-	// TODO: this is breaking because ,, keeps matching ,, ... I think
 	
 	// first time writing values
 	if (! [_prevWrittenVals count]) {
@@ -325,30 +316,21 @@ id valToWriteForVal(id val) {
 		}
 		_prevWrittenVals = [fmtVals mutableCopy];
 		
-	// not first time, so only write differences from last time
+	// not first time writing, so only write differences from last time
 	} else {
-		for (id val in values) {
-			//	NSLog(@"writeSampleValues: prevWrittenData: %@", _prevWrittenData);
-			//	for (long i = 0; i < [values count]; i++) {
-			//		id val = [values objectAtIndex:i];
-			//
-			//		// only write differences
-			//		if ([_prevWrittenVals count] > i) {
-			//			id prevVal = [_prevWrittenVals objectAtIndex:i];
-			//			if ([val isEqual: prevVal]) {
-			//				[fmtVals addObject:kNoChangeStr];
-			//				i++;
-			//				continue;
-			//			} else {
-			//				_prevWrittenVals[i] = val;
-			//			}
-			//		}
+
+#ifdef LOG_DIFFERENTIAL_TIMESTAMPS
+		// record previous timestamp before overwriting it
+		timestamp_t t0 = [[_prevWrittenVals objectAtIndex:kTimeStampIndex] longLongValue];
+#endif
+		for (long i = 0; i < [values count]; i++) {
+			id val = [values objectAtIndex:i];
+			id prevVal = [_prevWrittenVals objectAtIndex:i];
 			
 			// write it differently based on what type of data it is
 			id valToWrite = valToWriteForVal(val);
 			
 			// only write differences
-			id prevVal = _prevWrittenVals[i];
 			if ([valToWrite isEqual: prevVal]) {
 				valToWrite = kNoChangeStr;
 			} else {
@@ -356,13 +338,16 @@ id valToWriteForVal(id val) {
 			}
 			
 			[fmtVals addObject:valToWrite];
-			i++;
 		}
+#ifdef LOG_DIFFERENTIAL_TIMESTAMPS
+		timestamp_t t1 = [[fmtVals objectAtIndex:kTimeStampIndex] longLongValue];
+		[fmtVals setObject:@(t1 - t0) atIndexedSubscript:kTimeStampIndex];
+#endif
 	}
-	NSString* dataLine = [[values componentsJoinedByString:kCsvSeparator] stringByAppendingString:@"\n"];
-
+	
+//	NSString* dataLine = [[values componentsJoinedByString:kCsvSeparator] stringByAppendingString:@"\n"];
 	NSString* line = [[fmtVals componentsJoinedByString:kCsvSeparator] stringByAppendingString:@"\n"];
-	NSLog(@"writing prev line, sample, line:\n%@%@%@\n", prevLine, dataLine, line);
+//	NSLog(@"writing prev line, sample, line:\n%@%@%@\n", prevLine, dataLine, line);
 	NSData *data = [line dataUsingEncoding:NSUTF8StringEncoding];
 	[stream write:data.bytes maxLength:data.length];
 	
@@ -519,7 +504,8 @@ id valToWriteForVal(id val) {
 	_linesInLog = 0;
 	
 	NSString* dbPath = [_logSubdir stringByAppendingPathComponent:[_logPath lastPathComponent]];
-	uploadTextFile(_logPath, dbPath, nil);
+	[[DropboxUploader sharedUploader] addFileToUpload:_logPath toPath:dbPath];
+	[[DropboxUploader sharedUploader] tryUploadingFiles];	//will auto-try later anyway
 }
 -(void) deleteLog {
 	[self endLog];

@@ -29,8 +29,14 @@
 #define DEFAULT_VALUE_USER @"__UNKNOWN__"
 #define DEFAULT_VALUE_TAGS @"None"
 
-#define ALL_LOCAL_KEYS (@[KEY_WATCH_X, KEY_WATCH_Y, KEY_WATCH_Z, KEY_USER_ID, KEY_TAGS]);
-#define ALL_LOCAL_DEFAULT_VALUES (@[DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_USER, DEFAULT_VALUE_TAGS]);
+#define LOG_USER_ID
+#ifdef LOG_USER_ID
+	#define ALL_LOCAL_KEYS (@[KEY_WATCH_X, KEY_WATCH_Y, KEY_WATCH_Z, KEY_USER_ID, KEY_TAGS]);
+	#define ALL_LOCAL_DEFAULT_VALUES (@[DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_USER, DEFAULT_VALUE_TAGS]);
+#else
+	#define ALL_LOCAL_KEYS (@[KEY_WATCH_X, KEY_WATCH_Y, KEY_WATCH_Z, KEY_TAGS]);
+	#define ALL_LOCAL_DEFAULT_VALUES (@[DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_TAGS]);
+#endif
 
 static NSString *const LOGGING_SUBDIR_PREFIX = @"users/";
 
@@ -96,8 +102,9 @@ NSArray* allDataDefaultValues() {
 @property (strong, nonatomic) DBDataLogger* dataLogger;
 @property (strong, nonatomic) DBSensorMonitor* sensorMonitor;
 
-@property (readwrite) BOOL launchedApp;
-@property (readwrite) BOOL recording;
+@property (nonatomic) BOOL launchedApp;
+@property (nonatomic) BOOL recording;
+@property (nonatomic) BOOL pebbleConnected;
 
 //--------------------------------
 // View properties
@@ -227,7 +234,7 @@ NSArray* allDataDefaultValues() {
 //	[_stream write:data.bytes maxLength:data.length];
 //}
 
--(void) logAccelX:(int8_t)x Y:(int8_t)y Z:(int8_t)z timeStamp:(timestamp_t)sampleTime {
+-(void) logAccelX:(double)x Y:(double)y Z:(double)z timeStamp:(timestamp_t)sampleTime {
 	NSDictionary* kvPairs = @{KEY_WATCH_X: @(x / 64.0),
 							  KEY_WATCH_Y: @(y / 64.0),
 							  KEY_WATCH_Z: @(z / 64.0)};
@@ -544,7 +551,7 @@ void setCellInActive(UITableViewCell* cell) {
 								message:[watch name]
 							   delegate:nil cancelButtonTitle:@"OK"
 					  otherButtonTitles:nil] show];
-    
+	_pebbleConnected = YES;
     NSLog(@"Pebble connected: %@", [watch name]);
     self.myWatch = watch;
 	[self startWatchApp];
@@ -555,7 +562,11 @@ void setCellInActive(UITableViewCell* cell) {
 								message:[watch name]
 							   delegate:nil
 					  cancelButtonTitle:@"OK" otherButtonTitles:nil] show];
-    
+	_pebbleConnected = NO;
+	[self logAccelX:NONSENSICAL_DOUBLE
+				  Y:NONSENSICAL_DOUBLE
+				  Z:NONSENSICAL_DOUBLE
+		  timeStamp:currentTimeStampMs()];
     NSLog(@"Pebble disconnected: %@", [watch name]);
     
     if (self.myWatch == watch || [watch isEqual:self.myWatch]) {

@@ -13,7 +13,8 @@
 // any number < -180.0 should work for everything; important that it be
 // negative since negative vals are how {speed, course, * accuracy}
 // (and possibly a couple others) signal that they're invalid
-#define NONSENSICAL_NUMBER @(NAN)
+#define NONSENSICAL_DOUBLE NAN
+#define NONSENSICAL_NUMBER @(NONSENSICAL_DOUBLE)
 
 // other values are more meaningful, but really nice to just have one value
 // to mark invalidity for subsequent mining

@@ -23,6 +23,8 @@
 #import "TimeUtils.h"
 
 #define ANONYMIZE
+//#define INCLUDE_MOTION_HASH
+//#define INCLUDE_HEADING_HASH
 
 //================================================================
 // Constants
@@ -38,8 +40,9 @@ static const double METERS_PER_DEGREE_LAT = 111130;	// approx, depends on lat
 static const double DEGREES_PER_METER = 1.0 / METERS_PER_DEGREE_LAT;
 
 // general thresholds
-#define THRESH_DEGREES_ANGLE @3.0
-#define THRESH_RADS_ANGLE @(3.0 * RADS_PER_DEGREE)
+static const double THRESH_DEGREES_ANGLE_DBL = 3.0;
+#define THRESH_DEGREES_ANGLE @(THRESH_DEGREES_ANGLE_DBL)
+#define THRESH_RADS_ANGLE @(THRESH_DEGREES_ANGLE_DBL * RADS_PER_DEGREE)
 
 // motion thresholds
 #define THRESH_ACCEL 	@(1.0 / 32)				// g
@@ -84,7 +87,9 @@ NSString *const KEY_MAG_ACC= @"magAcc";	// {uncalibrated, low, med, high}
 NSString *const KEY_MAG_X  = @"magX";	// (undocumented unit, perhaps degrees)
 NSString *const KEY_MAG_Y  = @"magY";	// (undocumented unit, perhaps degrees)
 NSString *const KEY_MAG_Z  = @"magZ";	// (undocumented unit, perhaps degrees)
-NSString *const KEY_MOTION_UPDATE_HASH = @"motHash"; // 0-999 value identifying an update
+#ifdef INCLUDE_MOTION_HASH
+NSString *const KEY_MOTION_UPDATE_HASH = @"_hashMot"; // 0-999 value identifying an update
+#endif
 
 // location
 NSString *const KEY_LATITUDE  = @"lat";					// deg
@@ -97,7 +102,7 @@ NSString *const KEY_BUILDING_FLOOR = @"floor";			// int, floor number
 #endif
 NSString *const KEY_COURSE = @"course";					// deg
 NSString *const KEY_SPEED = @"speed";					// m/s
-NSString *const KEY_LOCATION_UPDATE_HASH = @"locHash";	// 0-999 value identifying an update
+NSString *const KEY_LOCATION_UPDATE_HASH = @"_hashLoc";	// 0-999 value identifying an update
 
 // heading
 NSString *const KEY_HEADING_ACC = @"headAcc";	// deg
@@ -108,8 +113,9 @@ NSString *const KEY_TRUE_HEADING = @"truHead";	// deg
 NSString *const KEY_HEADING_X = @"headX";		// (uTesla)
 NSString *const KEY_HEADING_Y = @"headY";		// (uTesla)
 NSString *const KEY_HEADING_Z = @"headZ";		// (uTesla)
-NSString *const KEY_HEADING_UPDATE_HASH  = @"headHash";	// 0-999 value identifying an update
-
+#ifdef INCLUDE_HEADING_HASH
+NSString *const KEY_HEADING_UPDATE_HASH  = @"_hashHead";	// 0-999 value identifying an update
+#endif
 
 //================================================================
 // Utility funcs
@@ -295,7 +301,10 @@ NSDictionary* defaultsDictMotion() {
 				KEY_MAG_X: DBINVALID_MAG,
 				KEY_MAG_Y: DBINVALID_MAG,
 				KEY_MAG_Z: DBINVALID_MAG,
-				KEY_MOTION_UPDATE_HASH: DBINVALID_HASH};
+#ifdef INCLUDE_MOTION_HASH
+				KEY_MOTION_UPDATE_HASH: DBINVALID_HASH
+#endif
+				};
 //				@"motionUpdateTimestamp": DBINVALID_TIMESTAMP};
 }
 
@@ -323,7 +332,10 @@ NSDictionary* defaultsDictHeading() {
 				KEY_HEADING_X: DBINVALID_HEADING,
 				KEY_HEADING_Y: DBINVALID_HEADING,
 				KEY_HEADING_Z: DBINVALID_HEADING,
-				KEY_HEADING_UPDATE_HASH: DBINVALID_HASH};
+#ifdef INCLUDE_HEADING_HASH
+				KEY_HEADING_UPDATE_HASH: DBINVALID_HASH
+#endif
+				};
 //				@"headingUpdateTimestamp": DBINVALID_TIMESTAMP};
 }
 
@@ -396,7 +408,10 @@ NSDictionary* dictFromMotion(CMDeviceMotion* motion) {
 				KEY_MAG_X: magValid ? @(motion.magneticField.field.x) : DBINVALID_MAG,
 				KEY_MAG_Y: magValid ? @(motion.magneticField.field.y) : DBINVALID_MAG,
 				KEY_MAG_Z: magValid ? @(motion.magneticField.field.z) : DBINVALID_MAG,
-				KEY_MOTION_UPDATE_HASH: @(hashTimeStamp(currentTimeStampMs()))};
+#ifdef INCLUDE_MOTION_HASH
+				KEY_MOTION_UPDATE_HASH: @(hashTimeStamp(currentTimeStampMs()))
+#endif
+				};
 				//this would be slightly better, but it's not clear that it works...
 //				@"motionUpdateTimestamp": @(timeStampFromCoreMotionTimeStamp(motion.timestamp))};
 }
@@ -454,7 +469,10 @@ NSDictionary* dictFromHeading(CLHeading* heading) {
 				KEY_HEADING_X: @((int)heading.x),
 				KEY_HEADING_Y: @((int)heading.y),
 				KEY_HEADING_Z: @((int)heading.z),
-				KEY_HEADING_UPDATE_HASH: @(hashTimeStamp(timeStampFromDate(heading.timestamp)))};
+#ifdef INCLUDE_HEADING_HASH
+				KEY_HEADING_UPDATE_HASH: @(hashTimeStamp(timeStampFromDate(heading.timestamp)))
+#endif
+				};
 //				@"headingUpdateTimestamp": @(timeStampFromDate(heading.timestamp))};
 }
 
@@ -525,6 +543,7 @@ NSDictionary* allSensorDefaultsDict() {
 	_locationManager.delegate = self;
 	_locationManager.desiredAccuracy = kCLLocationAccuracyBest;
 	[_locationManager startUpdatingLocation];
+	_locationManager.headingFilter = THRESH_DEGREES_ANGLE_DBL;	// don't even send the events
 	[_locationManager startUpdatingHeading];
 
 	_queue = [[NSOperationQueue alloc] init];
@@ -565,11 +584,6 @@ NSDictionary* allSensorDefaultsDict() {
 	}
 }
 
-//-(void) sendData:(NSDictionary*)data withTime:(timestamp_t)t previousData:(NSDictionary*)oldData changeThresholds:(NSDictionary*)threshs {
-//	data = extractChanges(oldData, data, threshs);
-//	[self sendData:data withTime:t];
-//}
-
 -(void) sendMotionData:(NSDictionary*)data withTime:(timestamp_t)time {
 	if (_sendOnlyIfDifferent) {
 		@synchronized(_lockMotion) {
@@ -577,13 +591,7 @@ NSDictionary* allSensorDefaultsDict() {
 												   data,
 												   changeThreshsDictMotion());
 			[_prevDataMotion addEntriesFromDictionary:changes];
-//			NSLog(@"sending motion, changes: %@%@", data, changes);
 			[self sendData:changes withTime:time];
-//			[self sendData:data
-//				  withTime:time
-//			  previousData:_prevDataMotion
-//		  changeThresholds:changeThreshsDictMotion()];
-//			_prevDataMotion = [data copy];
 		}
 	} else {
 //		NSLog(@"sending motion data: %@", data);
@@ -599,11 +607,6 @@ NSDictionary* allSensorDefaultsDict() {
 												   changeThreshsDictLocation());
 			[_prevDataLocation addEntriesFromDictionary:changes];
 			[self sendData:changes withTime:time];
-//			[self sendData:data
-//				  withTime:time
-//			  previousData:_prevDataLocation
-//		  changeThresholds:];
-//			_prevDataLocation = [data copy];
 		}
 	} else {
 		[self sendData:data withTime:time];
@@ -618,11 +621,6 @@ NSDictionary* allSensorDefaultsDict() {
 												   changeThreshsDictHeading());
 			[_prevDataHeading addEntriesFromDictionary:changes];
 			[self sendData:changes withTime:time];
-//			[self sendData:data
-//				  withTime:time
-//			  previousData:_prevDataHeading
-//		  changeThresholds:changeThreshsDictHeading()];
-//			_prevDataHeading = [data copy];
 		}
 	} else {
 		[self sendData:data withTime:time];

@@ -37,8 +37,8 @@
 		72AD836F1A61F85C007720ED /* SHCTableViewCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 72AD836E1A61F85C007720ED /* SHCTableViewCell.m */; };
 		72AD83741A630D05007720ED /* MiscUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 72AD83731A630D05007720ED /* MiscUtils.m */; };
 		72AD83761A6311C7007720ED /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 72AD83751A6311C7007720ED /* Security.framework */; };
-		72D3BFAC1A67606600648A67 /* DropboxUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 72D3BFAB1A67606600648A67 /* DropboxUtils.m */; };
 		72D3BFAE1A6830DF00648A67 /* DropboxInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 72D3BFAD1A6830DF00648A67 /* DropboxInfo.m */; };
+		72D3BFB21A69B56A00648A67 /* DropboxUploader.m in Sources */ = {isa = PBXBuildFile; fileRef = 72D3BFB11A69B56A00648A67 /* DropboxUploader.m */; };
 		A191730F992B3C8F599F57F4 /* libPods.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E7238C615B2AEDEADA96C4D /* libPods.a */; };
 /* End PBXBuildFile section */
 
@@ -90,9 +90,9 @@
 		72AD83751A6311C7007720ED /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		72AD83771A633AD5007720ED /* DropboxInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DropboxInfo.h; sourceTree = "<group>"; };
 		72AD83781A637C78007720ED /* DropboxSDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = DropboxSDK.framework; sourceTree = "<group>"; };
-		72B3303F1A67483100216764 /* DropboxUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DropboxUtils.h; sourceTree = "<group>"; };
-		72D3BFAB1A67606600648A67 /* DropboxUtils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DropboxUtils.m; sourceTree = "<group>"; };
 		72D3BFAD1A6830DF00648A67 /* DropboxInfo.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DropboxInfo.m; sourceTree = "<group>"; };
+		72D3BFB01A69B56A00648A67 /* DropboxUploader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DropboxUploader.h; sourceTree = "<group>"; };
+		72D3BFB11A69B56A00648A67 /* DropboxUploader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DropboxUploader.m; sourceTree = "<group>"; };
 		99814588A791C3485A24932E /* Pods.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.debug.xcconfig; path = "Pods/Target Support Files/Pods/Pods.debug.xcconfig"; sourceTree = "<group>"; };
 		9E7238C615B2AEDEADA96C4D /* libPods.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPods.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -180,6 +180,8 @@
 				727FA1541A60BBFC00420305 /* ViewController.m */,
 				727FA13F1A60BBFC00420305 /* DBDataLogger.h */,
 				727FA1401A60BBFC00420305 /* DBDataLogger.m */,
+				72D3BFB01A69B56A00648A67 /* DropboxUploader.h */,
+				72D3BFB11A69B56A00648A67 /* DropboxUploader.m */,
 				727FA1411A60BBFC00420305 /* DBSensorMonitor.h */,
 				727FA1421A60BBFC00420305 /* DBSensorMonitor.m */,
 				727FA1431A60BBFC00420305 /* iOSense.entitlements */,
@@ -203,8 +205,6 @@
 				72AD83731A630D05007720ED /* MiscUtils.m */,
 				727FA1461A60BBFC00420305 /* FileUtils.h */,
 				727FA1471A60BBFC00420305 /* FileUtils.m */,
-				72B3303F1A67483100216764 /* DropboxUtils.h */,
-				72D3BFAB1A67606600648A67 /* DropboxUtils.m */,
 				72AD83771A633AD5007720ED /* DropboxInfo.h */,
 				72D3BFAD1A6830DF00648A67 /* DropboxInfo.m */,
 			);
@@ -322,6 +322,7 @@
 			files = (
 				727FA1631A60BBFC00420305 /* ViewController.m in Sources */,
 				727FA1551A60BBFC00420305 /* AppDelegate.m in Sources */,
+				72D3BFB21A69B56A00648A67 /* DropboxUploader.m in Sources */,
 				727FA15C1A60BBFC00420305 /* GraphView.m in Sources */,
 				72D3BFAE1A6830DF00648A67 /* DropboxInfo.m in Sources */,
 				727FA1571A60BBFC00420305 /* DBDataLogger.m in Sources */,
@@ -329,7 +330,6 @@
 				727FA1601A60BBFC00420305 /* Labels.m in Sources */,
 				72AD83741A630D05007720ED /* MiscUtils.m in Sources */,
 				727FA1611A60BBFC00420305 /* main.m in Sources */,
-				72D3BFAC1A67606600648A67 /* DropboxUtils.m in Sources */,
 				727FA1621A60BBFC00420305 /* TimeUtils.m in Sources */,
 				72AD836F1A61F85C007720ED /* SHCTableViewCell.m in Sources */,
 				727FA15B1A60BBFC00420305 /* FileUtils.m in Sources */,
