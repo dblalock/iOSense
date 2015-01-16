@@ -82,6 +82,16 @@ static const NSStringEncoding kENCODING = NSUTF8StringEncoding;
 	return [[NSString alloc] initWithData:[NSData dataWithContentsOfFile:fullFileName] encoding:kENCODING];
 }
 
++(BOOL) fileExists:(NSString*)path {
+	return [[NSFileManager defaultManager] fileExistsAtPath:path];
+}
+
++(BOOL) dirExists:(NSString*)path {
+	BOOL isDir;
+	BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDir];
+	return exists && isDir;
+}
+
 +(BOOL) fileEmpty:(NSString*)path {
 	NSFileManager *manager = [NSFileManager defaultManager];
 	if ([manager fileExistsAtPath:path]) {
@@ -92,6 +102,12 @@ static const NSStringEncoding kENCODING = NSUTF8StringEncoding;
 		}
 	}
 	return NO;
+}
+
++(BOOL) fileNonEmpty:(NSString*)path {
+	BOOL fileExists = [FileUtils fileExists:path];
+	if (! fileExists) return NO;
+	return ! [FileUtils fileEmpty:path];
 }
 
 @end

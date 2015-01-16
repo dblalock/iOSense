@@ -42,7 +42,7 @@
 @interface DBSensorMonitor : NSObject
 
 @property (nonatomic, copy) void (^onDataReceived)(NSDictionary* data, timestamp_t timestamp);
-// @property (nonatomic) anonymize;
+@property (nonatomic) BOOL sendOnlyIfDifferent;
 
 -(instancetype) initWithDataReceivedHandler:(void (^)(NSDictionary* data, timestamp_t timestamp))handler;
 -(void) poll;	//force update

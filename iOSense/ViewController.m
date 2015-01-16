@@ -20,17 +20,19 @@
 
 // not string consts since it's irrelevant what type they are, and nothing
 // should assume that they're strings (plus I've already typed this)
-#define KEY_WATCH_X @"pebbleX (g)"
-#define KEY_WATCH_Y @"pebbleY (g)"
-#define KEY_WATCH_Z @"pebbleZ (g)"
+#define KEY_WATCH_X @"pebbleX"
+#define KEY_WATCH_Y @"pebbleY"
+#define KEY_WATCH_Z @"pebbleZ"
 #define KEY_USER_ID	@"userId"
 #define KEY_TAGS	@"labels"
 #define DEFAULT_VALUE_ACCEL DBINVALID_ACCEL
-#define DEFAULT_VALUE_USER @"users/__UNKNOWN__"
+#define DEFAULT_VALUE_USER @"__UNKNOWN__"
 #define DEFAULT_VALUE_TAGS @"None"
 
 #define ALL_LOCAL_KEYS (@[KEY_WATCH_X, KEY_WATCH_Y, KEY_WATCH_Z, KEY_USER_ID, KEY_TAGS]);
 #define ALL_LOCAL_DEFAULT_VALUES (@[DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_USER, DEFAULT_VALUE_TAGS]);
+
+static NSString *const LOGGING_SUBDIR_PREFIX = @"users/";
 
 static const NSUInteger PEBBLE_ACCEL_HZ = 20;
 static const NSUInteger PEBBLE_ACCEL_PERIOD = 1000 / PEBBLE_ACCEL_HZ;
@@ -167,7 +169,7 @@ NSArray* allDataDefaultValues() {
 											  defaultValues:allDataDefaultValues()
 											   samplePeriod:DATALOGGING_PERIOD_MS];
 	_dataLogger.autoFlushLagMs = 2000;	//write every 2s
-	_dataLogger.logSubdir = [self userIdOrDefaultValue];
+	_dataLogger.logSubdir = [self generateLoggingSubdir];
 	_sensorMonitor = [[DBSensorMonitor alloc] initWithDataReceivedHandler:^
 		void(NSDictionary *data, timestamp_t timestamp) {
 			dispatch_async(dispatch_get_main_queue(), ^{	//main thread
@@ -175,6 +177,7 @@ NSArray* allDataDefaultValues() {
 			});
 		}
 	];
+	_sensorMonitor.sendOnlyIfDifferent = YES;
 
 	// pebble connection + callbacks
 	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -279,6 +282,10 @@ NSArray* allDataDefaultValues() {
 		[self plotAccelX:x Y:y Z:z];
 	}
 	return YES;
+}
+
+-(NSString*) generateLoggingSubdir {
+	return [LOGGING_SUBDIR_PREFIX stringByAppendingString:[self userIdOrDefaultValue]];
 }
 
 //===============================================================
@@ -607,7 +614,7 @@ void setCellInActive(UITableViewCell* cell) {
 
 -(void) textFieldDidEndEditing:(UITextField *)textField {
 	if (textField == _userIdText) {
-		[_dataLogger setLogSubdir:[self userIdOrDefaultValue]];
+		[_dataLogger setLogSubdir:[self generateLoggingSubdir]];
 	}
 }
 

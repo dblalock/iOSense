@@ -24,4 +24,7 @@ NSString* toJSONString(id object, BOOL pretty);
 
 UIViewController* getRootViewController();
 
+BOOL isFloatingPointNumber(id x);
+BOOL objsDifferent(id x, id y);
+
 #endif

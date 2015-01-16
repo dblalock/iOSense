@@ -43,11 +43,12 @@ timestamp_t coreMotionStartTimeMs() {
 		NSTimeInterval nowTimeIntervalSince1970 = [[NSDate date] timeIntervalSince1970];
 		offset = nowTimeIntervalSince1970 - uptime;
 	}
-	return offset;
+	return offset * 1000;
 }
 
 // core motion gives timestamps from system boot, not unix timestamps,
-// so we need to add the time at which the system booted
+// so we need to add the time at which the system booted; note that this
+// seems to be like a second off
 timestamp_t timeStampFromCoreMotionTimeStamp(NSTimeInterval timestamp) {
 	return coreMotionStartTimeMs() + timeStampfromTimeInterval(timestamp);
 }

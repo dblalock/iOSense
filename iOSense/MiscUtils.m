@@ -71,3 +71,24 @@ NSString* toJSONString(id object, BOOL pretty) {
 UIViewController* getRootViewController() {
 	return [[UIApplication sharedApplication] keyWindow].rootViewController;
 }
+
+BOOL isFloatingPointNumber(id x) {
+	//	return !! [x doubleValue];
+	if (! [x isKindOfClass:[NSNumber class]]) return NO;
+	//	return YES;
+	const char* typ = [x objCType];
+	BOOL isFloat = ! strncmp(typ, @encode(float), 1);
+	BOOL isDouble = ! strncmp(typ, @encode(double), 1);
+	return isFloat || isDouble;
+}
+
+BOOL objsDifferent(id x, id y) {
+//	NSLog(@"%@ and %@ different?", x, y);
+	if (x == y) return NO;
+	BOOL xIsNum = [x isKindOfClass:[NSNumber class]];
+	BOOL yIsNum = [y isKindOfClass:[NSNumber class]];
+	if (xIsNum && yIsNum) {
+		return ! [x isEqualToNumber:y];
+	}
+	return ! [x isEqual:y];
+}

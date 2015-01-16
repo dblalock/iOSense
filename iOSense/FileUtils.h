@@ -24,6 +24,10 @@
 
 +(NSString*) readStringFromFile:(NSString*)fileName;
 
++(BOOL) fileExists:(NSString*)path;
++(BOOL) dirExists:(NSString*)path;
+
 +(BOOL) fileEmpty:(NSString*)fileName;
++(BOOL) fileNonEmpty:(NSString*)path;
 
 @end

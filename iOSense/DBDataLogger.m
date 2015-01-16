@@ -6,6 +6,13 @@
 //  Copyright (c) 2015 D Blalock. All rights reserved.
 //
 
+//TODO
+//	-figure out why this sometimes has a timestamp of 0...
+//	-figure out why it doesn't think that timestamps are changing
+//		-according to the array it's getting, they're not...
+
+
+
 #import "DBDataLogger.h"
 
 #import "FileUtils.h"
@@ -13,6 +20,7 @@
 #import "MiscUtils.h"
 #import "DropboxUtils.h"
 
+static NSUInteger const kTimeStampIndex = 0;
 static NSString *const kKeyTimeStamp = @"timestamp";
 static NSString *const kDefaultLogName = @"log";
 static NSString *const kDefaultLogSubdir = @"";
@@ -26,6 +34,7 @@ static NSString *const kFloatFormat = @"%.3f";	// log only 3 decimal places (bad
 static NSString *const kIntFormat = @"%d";
 static const timestamp_t kDefaultGapThresholdMs = 2*1000;	//2s
 static const timestamp_t kDefaultTimeStamp = -1;
+static const NSUInteger kMaxLinesInLog = 1000;	// ~4MB
 
 @interface DBDataLogger ()
 
@@ -39,6 +48,7 @@ static const timestamp_t kDefaultTimeStamp = -1;
 @property(strong, nonatomic) NSMutableArray* currentSampleValues;
 
 @property(strong, atomic) NSMutableArray* data;
+@property(strong, atomic) NSMutableArray* prevWrittenVals;
 
 @property(nonatomic) NSUInteger samplingPeriodMs;
 @property(nonatomic) timestamp_t lastFlushTimeMs;
@@ -51,6 +61,8 @@ static const timestamp_t kDefaultTimeStamp = -1;
 @property(nonatomic) BOOL isLogging;
 @property(nonatomic) BOOL shouldAppendToLog;
 
+@property(nonatomic) NSUInteger linesInLog;
+
 // dropbox client
 //@property (strong, nonatomic) DBRestClient *restClient;
 
@@ -59,12 +71,19 @@ static const timestamp_t kDefaultTimeStamp = -1;
 
 @implementation DBDataLogger
 
-timestamp_t timeStampForSample(NSDictionary* sample) {
+timestamp_t getTimeStampForSample(NSDictionary* sample) {
 	timestamp_t time = [[sample valueForKey:kKeyTimeStamp] unsignedLongLongValue];
 	if (time <= 0) {
 		NSLog(@"timestamp for sample = %lld, something done bad", time);
 	}
 	return time;
+}
+
+void setTimeStampForSample(NSDictionary* sample, timestamp_t time) {
+	[sample setValue:@(time) forKey:kKeyTimeStamp];
+	if (time <= 0) {
+		NSLog(@"set timestamp %lld for sample, which is probaly bad", time);
+	}
 }
 
 NSArray* sortedByTimeStamp(NSArray* data) {
@@ -81,11 +100,11 @@ NSArray* sortedByTimeStamp(NSArray* data) {
 
 		// add a "signal" for the time stamp at position 0
 		NSMutableArray* defaultsWithTimeStamp = [defaults mutableCopy];
-		[defaultsWithTimeStamp insertObject:@(kDefaultTimeStamp) atIndex:0];
+		[defaultsWithTimeStamp insertObject:@(kDefaultTimeStamp) atIndex:kTimeStampIndex];
 		_defaultValues = defaultsWithTimeStamp;
 		
 		NSMutableArray* sigNames = [names mutableCopy];
-		[sigNames insertObject:kKeyTimeStamp atIndex:0];
+		[sigNames insertObject:kKeyTimeStamp atIndex:kTimeStampIndex];
 		_allSignalNames = sigNames;
 		
 		// store indices of each signal so dimensions have consistent meaning
@@ -103,14 +122,13 @@ NSArray* sortedByTimeStamp(NSArray* data) {
 		// initialize data stuff
 		_currentSampleValues = [_defaultValues mutableCopy];
 		_data = [NSMutableArray array];
+		_prevWrittenVals = [NSMutableArray array];
 		
 		// file stuff
 		_logName = kDefaultLogName;
 		_logSubdir = kDefaultLogSubdir;
 		
-		// dropbox stuff
-//		_restClient = [[DBRestClient alloc] initWithSession:[DBSession sharedSession]];
-//		_restClient.delegate = self;
+		_linesInLog = 0;
 		
 		// time stuff
 		_samplingPeriodMs = ms;
@@ -127,7 +145,9 @@ NSArray* sortedByTimeStamp(NSArray* data) {
 }
 
 -(void) logData:(NSDictionary*)kvPairs withTimeStamp:(timestamp_t)ms {
+//	NSLog(@"logData: t=%lld at time=%lld, logging %@", ms, currentTimeStampMs(), kvPairs);
 	if (! _isLogging) return;
+	if (! [kvPairs count]) return;
 	
 	if (ms <= 0) {
 		ms = currentTimeStampMs();
@@ -136,8 +156,9 @@ NSArray* sortedByTimeStamp(NSArray* data) {
 	}
 	
 	NSMutableDictionary* sample = [kvPairs mutableCopy];
-	[sample setObject:@(ms) forKey:kKeyTimeStamp];
+	setTimeStampForSample(sample, ms);
 	[_data addObject:sample];
+//	NSLog(@"added obj to data: %@", sample);
 	
 	_latestTimeStamp = MAX(_latestTimeStamp, ms);
 	if (_latestTimeStamp - _lastFlushTimeMs > _autoFlushLagMs) {
@@ -213,7 +234,7 @@ NSArray* rawArrayToSampleBuff(id* array, int len, NSArray* keys) {
 	unsigned int start, stop;
 	
 	for (start = 0; start < numSamples; start++) {
-		timestamp_t sampleTime = timeStampForSample(sorted[start]);
+		timestamp_t sampleTime = getTimeStampForSample(sorted[start]);
 		if (sampleTime < minTime) {
 			start++;
 		} else {
@@ -224,7 +245,7 @@ NSArray* rawArrayToSampleBuff(id* array, int len, NSArray* keys) {
 	// at end of loop, stop is one past the last index in the array
 	// that's before ms; ie, stop = 1st index in post-flush samples
 	for (stop = start; stop < numSamples; stop++) {
-		timestamp_t sampleTime = timeStampForSample(sorted[stop]);
+		timestamp_t sampleTime = getTimeStampForSample(sorted[stop]);
 		if (sampleTime > ms) {
 			break;
 		}
@@ -274,38 +295,84 @@ NSArray* rawArrayToSampleBuff(id* array, int len, NSArray* keys) {
 	return [self updateSampleValues:[_defaultValues mutableCopy] withSample:sample];
 }
 
-BOOL isFloatingPointNumber(id x) {
-//	return !! [x doubleValue];
-	if (! [x isKindOfClass:[NSNumber class]]) return NO;
-//	return YES;
-	const char* typ = [x objCType];
-	BOOL isFloat = ! strncmp(typ, @encode(float), 1);
-	BOOL isDouble = ! strncmp(typ, @encode(double), 1);
-	return isFloat || isDouble;
-}
-
-void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
-	NSMutableArray* fmtVals = [NSMutableArray arrayWithCapacity:[values count]];
-	for (id val in values) {
-		if (val && isFloatingPointNumber(val)) {
-			double dbl = [val doubleValue];
-			if (isnan(dbl)) {
-				[fmtVals addObject:kNanStr];	//empty if nan
-			} else {
-				[fmtVals addObject:[NSString stringWithFormat:kFloatFormat, dbl]];
-			}
+id valToWriteForVal(id val) {
+	id valToWrite = val;
+	if (val && isFloatingPointNumber(val)) {
+		double dbl = [val doubleValue];
+		if (isnan(dbl)) {
+			valToWrite = kNanStr;
 		} else {
-			[fmtVals addObject:val];
+			valToWrite = [NSString stringWithFormat:kFloatFormat, dbl];
 		}
 	}
-	NSString* line = [[fmtVals componentsJoinedByString:kCsvSeparator] stringByAppendingString:@"\n"];
-//	NSLog(@"writing line: %@", line);
-	NSData *data = [line dataUsingEncoding:NSUTF8StringEncoding];
-	[stream write:data.bytes maxLength:data.length];
+	return valToWrite;
 }
 
--(void) resetCurrentSampleValues {
+-(void) writeSampleValues:(NSArray*)values toStream:(NSOutputStream*)stream {
+	NSMutableArray* fmtVals = [NSMutableArray arrayWithCapacity:[values count]];
+	long i = 0;
+	
+	NSString* prevLine = [[_prevWrittenVals componentsJoinedByString:kCsvSeparator] stringByAppendingString:@"\n"];
+//	NSLog(@"prev line:\n%@", prevLine);
+	
+	
+	// TODO: this is breaking because ,, keeps matching ,, ... I think
+	
+	// first time writing values
+	if (! [_prevWrittenVals count]) {
+		for (id val in values) {
+			[fmtVals addObject:valToWriteForVal(val)];
+		}
+		_prevWrittenVals = [fmtVals mutableCopy];
+		
+	// not first time, so only write differences from last time
+	} else {
+		for (id val in values) {
+			//	NSLog(@"writeSampleValues: prevWrittenData: %@", _prevWrittenData);
+			//	for (long i = 0; i < [values count]; i++) {
+			//		id val = [values objectAtIndex:i];
+			//
+			//		// only write differences
+			//		if ([_prevWrittenVals count] > i) {
+			//			id prevVal = [_prevWrittenVals objectAtIndex:i];
+			//			if ([val isEqual: prevVal]) {
+			//				[fmtVals addObject:kNoChangeStr];
+			//				i++;
+			//				continue;
+			//			} else {
+			//				_prevWrittenVals[i] = val;
+			//			}
+			//		}
+			
+			// write it differently based on what type of data it is
+			id valToWrite = valToWriteForVal(val);
+			
+			// only write differences
+			id prevVal = _prevWrittenVals[i];
+			if ([valToWrite isEqual: prevVal]) {
+				valToWrite = kNoChangeStr;
+			} else {
+				_prevWrittenVals[i] = valToWrite;
+			}
+			
+			[fmtVals addObject:valToWrite];
+			i++;
+		}
+	}
+	NSString* dataLine = [[values componentsJoinedByString:kCsvSeparator] stringByAppendingString:@"\n"];
+
+	NSString* line = [[fmtVals componentsJoinedByString:kCsvSeparator] stringByAppendingString:@"\n"];
+	NSLog(@"writing prev line, sample, line:\n%@%@%@\n", prevLine, dataLine, line);
+	NSData *data = [line dataUsingEncoding:NSUTF8StringEncoding];
+	[stream write:data.bytes maxLength:data.length];
+	
+	_linesInLog++;
+}
+
+-(void) resetCurrentSampleValues {	//TODO uncomment this
+	timestamp_t t = [_currentSampleValues[kTimeStampIndex] longLongValue];
 	_currentSampleValues = [_defaultValues mutableCopy];
+	_currentSampleValues[kTimeStampIndex] = @(t);
 }
 
 -(void) resetCurrentSampleValuesIfGapFromT:(timestamp_t)t toTprev:(timestamp_t)tprev {
@@ -318,9 +385,9 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 -(void)writeData:(NSArray*)samples {
 	if (! [samples count]) return;
 
-	timestamp_t sampleBoundary = timeStampForSample(samples[0]) + _samplingPeriodMs;
-	timestamp_t t = timeStampForSample(samples[0]);
+	timestamp_t t = getTimeStampForSample(samples[0]);
 	timestamp_t tprev = _prevLastSampleTimeWritten;
+	timestamp_t sampleBoundary = t + _samplingPeriodMs;
 	[self resetCurrentSampleValuesIfGapFromT:t toTprev:tprev];
 	
 	// ensure that default values don't get written on 1st iteration
@@ -339,61 +406,14 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 		//
 		// Also note that if there's nothing to update, we'll just
 		// write the same data repeatedly so that we stil log at our
-		// master sampling rate;
+		// master sampling rate
 		//
 		// However, if there's a huge gap (more than k seconds), just
 		// write the default values as a "hey, there's a pause here"
 		// flag and continue on; interpolating here wouldn't be super
 		// meaningful
 		//
-		// More precisely:
-		//
-		// let t, tprev be current and previous sample times
-		// let thresh be the end of the current period
-		// let gap be the amount of time necessitating a reset
-		//
-		// let delta = t - tprev
-		// let tau = t - thresh
-		//
-		// case: tau < 0, delta < gap
-		//	sample not done yet, so update currentSample
-		// case: tau < 0, delta > gap
-		//	-impossible unless gap is stupidly small, in which case it's your fault
-		//		-what if tprev is -inf?
-		//			-then thresh must also be -inf, so this still doesn't happen
-		// case: tau > 0, delta < gap
-		//	-last sample was the last one in the combined sample
-		//	-need to interpolate until the current sample
-		// case: tau > 0, delta > gap
-		//	-gap happened
-		//	-write the previous sample
-		//	-reset the current sample before updating it
-		//
-		// start and end edge conditions:
-		//	-currentSampleValues is assumed to be partially completed from
-		//	the last write
-		//		-unless this is the first stuff we've written, in which case
-		//		it's the garbage default values
-		//		case partially complete:
-		//			-just like if the loop were continuing from a prev iteration
-		//		case garbage:
-		//			-don't write it even if the next sample crosses thresh
-		//	-at the end, we must assume that currentSampleValues is partially
-		//	completed, unless we know the next sample won't come until after
-		//	the thresh
-		//		-but we don't actually know this because everything that isn't
-		//		passed into this method hasn't been flushed
-		//			-unless the stream is paused, but then something can
-		//			explicitly tell us / write currentSample itself		//TODO
-		//
-		// -actually, screw dealing with gaps...all the interpolated values will
-		// get the same timestamp, so you can filter them out later if you want
-		//	-only thing we actually have to deal with is not writing garbage
-		//	the first time we write
-		//
-		//
-		//
-		// So what actually happened is that I decided to ignore dealing with
+		// Also, note that I decided to ignore dealing with
 		// carrying currentSampleValues across invokations and interpolate
 		// regardless of whether there was a gap, but still reset stuff after
 		// a gap. A gap is unlikely to ever occur cuz phone accel, etc, will
@@ -402,35 +422,31 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 		
 		// update current and previous samples
 		tprev = t;
-		t = timeStampForSample(sample);
+		t = getTimeStampForSample(sample);
 		[self resetCurrentSampleValuesIfGapFromT:t toTprev:tprev];
-		prevSampleValues = _currentSampleValues;
+		prevSampleValues = [_currentSampleValues mutableCopy];
 		[self updateSampleValues:_currentSampleValues withSample:sample];
 
 		// write out finished samples, reproducing them forward in time
-		// until we hit another sample
-		while (t > sampleBoundary) {
-			writeSampleValuesToStream(prevSampleValues, _stream);
+		// until we hit another sample; not actually sure if the 2nd
+		// check here is necessary, but certainly it should hold
+//		while (t > sampleBoundary) {				//TODO uncomment below stuff
+		while (t > sampleBoundary && tprev < t) {
+			[self writeSampleValues:prevSampleValues toStream:_stream];
 			sampleBoundary += _samplingPeriodMs;
+			
+			// increment timestamp of "interpolated" sample
+			tprev += _samplingPeriodMs;
+			prevSampleValues[kTimeStampIndex] = @(tprev);
 		}
-//		if (sampleBoundary + _gapThresholdMs < sampleTime) {
-//			_currentSampleValues = [_defaultValues mutableCopy];
-//			writeSampleValuesToStream(_defaultValues, _stream);
-//			break;
-//		} else {
-//			while (sampleTime > sampleBoundary) {
-//				writeSampleValuesToStream(prevSampleValues, _stream);
-//				sampleBoundary += _samplingPeriodMs;
-//			}
-//		}
 	}
 	// deal with last sample not getting written; a slightly more
 	// accurate way would be to wait to write this until the next
 	// time data is written and combine it with appropriate samples
 	// there, but that makes things way more complicated
-	writeSampleValuesToStream(prevSampleValues, _stream);
+	[self writeSampleValues:prevSampleValues toStream:_stream];
 	
-	_prevLastSampleTimeWritten = timeStampForSample(sample);
+	_prevLastSampleTimeWritten = getTimeStampForSample(sample);
 }
 
 -(void) flush {
@@ -461,7 +477,7 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 
 -(NSString*) generateLogFilePath {
 	NSString* logPath;
-	NSLog(@"logSubdir = %@", _logSubdir);
+//	NSLog(@"logSubdir = %@", _logSubdir);
 //	if (_logSubdir) {
 //		logPath = [_logSubdir stringByAppendingPathComponent:_logName];
 //	} else {
@@ -472,7 +488,7 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 	logPath = [logPath stringByAppendingPathComponent:_logName];
 	logPath = [logPath stringByAppendingString:kLogNameAndDateSeparator];
 	logPath = [logPath stringByAppendingString:currentTimeStrForFileName()];
-	NSLog(@"logPath = %@", logPath);
+//	NSLog(@"logPath = %@", logPath);
 	return [logPath stringByAppendingString:kLogFileExt];
 }
 
@@ -485,7 +501,7 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 	[_stream open];
 	
 	// write signal names as first line
-	writeSampleValuesToStream(_allSignalNames, _stream);
+	[self writeSampleValues:_allSignalNames toStream:_stream];
 	
 	_lastFlushTimeMs = currentTimeStampMs();
 	_latestTimeStamp = minTimeStampMs();
@@ -499,6 +515,8 @@ void writeSampleValuesToStream(NSArray* values, NSOutputStream* stream) {
 -(void) endLog {
 	[self pauseLog];
 	_shouldAppendToLog = NO;
+	
+	_linesInLog = 0;
 	
 	NSString* dbPath = [_logSubdir stringByAppendingPathComponent:[_logPath lastPathComponent]];
 	uploadTextFile(_logPath, dbPath, nil);
