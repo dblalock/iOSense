@@ -14,7 +14,9 @@
 // meters to which CoreLocation thinks it's accurate) or have decimal places
 // that are likely just noise anyway (eg, the heading of the phone in degrees)
 
-//TODO deal with significant changes for lat/lon properly
+//TODO deal with significant changes for lat/lon properly?
+//TODO log iOS pedometer + activity estimates
+//TODO make this use a Signal data struct instead of proliferating dicts
 
 #import "DBSensorMonitor.h"
 
@@ -59,7 +61,7 @@ static const double THRESH_DEGREES_ANGLE_DBL = 3.0;
 #define THRESH_ACC_LOC	@0						// m
 
 // heading thresholds
-#define THRESH_MAG_HEADING @3					// uTesla
+#define THRESH_MAG_HEADING @5					// deg
 #define THRESH_ACC_HEADING @0					// deg
 
 // sampling rate (don't ask me why this is the only const following
@@ -279,6 +281,9 @@ static void initAnonymizing() {		// not threadsafe !
 //================================================================
 // Dictionary creation funcs
 //================================================================
+// in retrospect, knowing that I was going to need all of these,
+// attributes for each signal, it would have been much better to
+// create a class for this
 
 // --------------------------------------------------------------
 // Default sensor values
@@ -513,6 +518,15 @@ NSDictionary* allSensorDefaultsDict() {
 //-------------------------------
 // initialization
 //-------------------------------
+
++ (id)sharedInstance {
+	static DBSensorMonitor *sharedInstance = nil;
+	static dispatch_once_t onceToken;
+	dispatch_once(&onceToken, ^{
+		sharedInstance = [[self alloc] init];
+	});
+	return sharedInstance;
+}
 
 -(instancetype) initWithDataReceivedHandler:(void (^)(NSDictionary* data, timestamp_t timestamp))handler {
 #ifdef ANONYMIZE

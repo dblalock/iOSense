@@ -39,6 +39,7 @@
 		72AD83761A6311C7007720ED /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 72AD83751A6311C7007720ED /* Security.framework */; };
 		72D3BFAE1A6830DF00648A67 /* DropboxInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 72D3BFAD1A6830DF00648A67 /* DropboxInfo.m */; };
 		72D3BFB21A69B56A00648A67 /* DropboxUploader.m in Sources */ = {isa = PBXBuildFile; fileRef = 72D3BFB11A69B56A00648A67 /* DropboxUploader.m */; };
+		72D3BFB51A6C82E000648A67 /* DBPebbleMonitor.m in Sources */ = {isa = PBXBuildFile; fileRef = 72D3BFB41A6C82E000648A67 /* DBPebbleMonitor.m */; };
 		A191730F992B3C8F599F57F4 /* libPods.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E7238C615B2AEDEADA96C4D /* libPods.a */; };
 /* End PBXBuildFile section */
 
@@ -93,6 +94,8 @@
 		72D3BFAD1A6830DF00648A67 /* DropboxInfo.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DropboxInfo.m; sourceTree = "<group>"; };
 		72D3BFB01A69B56A00648A67 /* DropboxUploader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DropboxUploader.h; sourceTree = "<group>"; };
 		72D3BFB11A69B56A00648A67 /* DropboxUploader.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DropboxUploader.m; sourceTree = "<group>"; };
+		72D3BFB31A6C82E000648A67 /* DBPebbleMonitor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DBPebbleMonitor.h; sourceTree = "<group>"; };
+		72D3BFB41A6C82E000648A67 /* DBPebbleMonitor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DBPebbleMonitor.m; sourceTree = "<group>"; };
 		99814588A791C3485A24932E /* Pods.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.debug.xcconfig; path = "Pods/Target Support Files/Pods/Pods.debug.xcconfig"; sourceTree = "<group>"; };
 		9E7238C615B2AEDEADA96C4D /* libPods.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPods.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -178,6 +181,8 @@
 				727FA13C1A60BBFC00420305 /* AppDelegate.m */,
 				727FA1531A60BBFC00420305 /* ViewController.h */,
 				727FA1541A60BBFC00420305 /* ViewController.m */,
+				72D3BFB31A6C82E000648A67 /* DBPebbleMonitor.h */,
+				72D3BFB41A6C82E000648A67 /* DBPebbleMonitor.m */,
 				727FA13F1A60BBFC00420305 /* DBDataLogger.h */,
 				727FA1401A60BBFC00420305 /* DBDataLogger.m */,
 				72D3BFB01A69B56A00648A67 /* DropboxUploader.h */,
@@ -324,6 +329,7 @@
 				727FA1551A60BBFC00420305 /* AppDelegate.m in Sources */,
 				72D3BFB21A69B56A00648A67 /* DropboxUploader.m in Sources */,
 				727FA15C1A60BBFC00420305 /* GraphView.m in Sources */,
+				72D3BFB51A6C82E000648A67 /* DBPebbleMonitor.m in Sources */,
 				72D3BFAE1A6830DF00648A67 /* DropboxInfo.m in Sources */,
 				727FA1571A60BBFC00420305 /* DBDataLogger.m in Sources */,
 				727FA1581A60BBFC00420305 /* DBSensorMonitor.m in Sources */,

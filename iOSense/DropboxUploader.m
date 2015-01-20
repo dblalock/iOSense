@@ -168,7 +168,7 @@ static const double kTryUploadEveryNSecs = 2*60;	// 2min
 }
 
 -(void) tryUploadingFiles {
-	NSLog(@"Uploader: trying to upload files...");
+//	NSLog(@"Uploader: trying to upload files...");
 	NSFileManager* mgr = [NSFileManager defaultManager];
 	for (Upload* u in [_filesToUpload copy]) {
 		NSString* local = u.localPath;

@@ -45,6 +45,8 @@
 @property (nonatomic, copy) void (^onDataReceived)(NSDictionary* data, timestamp_t timestamp);
 @property (nonatomic) BOOL sendOnlyIfDifferent;
 
++(id) sharedInstance;
+
 -(instancetype) initWithDataReceivedHandler:(void (^)(NSDictionary* data, timestamp_t timestamp))handler;
 -(void) poll;	//force update
 -(void) pollLocation;	//force update of only location / heading

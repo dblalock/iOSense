@@ -10,6 +10,7 @@
 
 #import <MessageUI/MessageUI.h>
 
+#import "DBPebbleMonitor.h"
 #import "SHCTableViewCell.h"
 #import "Labels.h"
 #import "DBDataLogger.h"
@@ -20,9 +21,6 @@
 
 // not string consts since it's irrelevant what type they are, and nothing
 // should assume that they're strings (plus I've already typed this)
-#define KEY_WATCH_X @"pebbleX"
-#define KEY_WATCH_Y @"pebbleY"
-#define KEY_WATCH_Z @"pebbleZ"
 #define KEY_USER_ID	@"userId"
 #define KEY_TAGS	@"labels"
 #define DEFAULT_VALUE_ACCEL DBINVALID_ACCEL
@@ -30,33 +28,28 @@
 #define DEFAULT_VALUE_TAGS @"None"
 
 #define LOG_USER_ID
-#ifdef LOG_USER_ID
-	#define ALL_LOCAL_KEYS (@[KEY_WATCH_X, KEY_WATCH_Y, KEY_WATCH_Z, KEY_USER_ID, KEY_TAGS]);
-	#define ALL_LOCAL_DEFAULT_VALUES (@[DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_USER, DEFAULT_VALUE_TAGS]);
-#else
-	#define ALL_LOCAL_KEYS (@[KEY_WATCH_X, KEY_WATCH_Y, KEY_WATCH_Z, KEY_TAGS]);
-	#define ALL_LOCAL_DEFAULT_VALUES (@[DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_TAGS]);
-#endif
+//#ifdef LOG_USER_ID
+//	#define ALL_LOCAL_KEYS (@[KEY_WATCH_X, KEY_WATCH_Y, KEY_WATCH_Z, KEY_USER_ID, KEY_TAGS]);
+//	#define ALL_LOCAL_DEFAULT_VALUES (@[DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_USER, DEFAULT_VALUE_TAGS]);
+//#else
+//	#define ALL_LOCAL_KEYS (@[KEY_WATCH_X, KEY_WATCH_Y, KEY_WATCH_Z, KEY_TAGS]);
+//	#define ALL_LOCAL_DEFAULT_VALUES (@[DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_ACCEL, DEFAULT_VALUE_TAGS]);
+//#endif
 
 static NSString *const LOGGING_SUBDIR_PREFIX = @"users/";
-
-static const NSUInteger PEBBLE_ACCEL_HZ = 20;
-static const NSUInteger PEBBLE_ACCEL_PERIOD = 1000 / PEBBLE_ACCEL_HZ;
 
 static const NSUInteger DATALOGGING_HZ = 20;
 static const NSUInteger DATALOGGING_PERIOD_MS = 1000 / DATALOGGING_HZ;
 
-//static const uint8_t KEY_TRANSACTION_ID = 0x1;
-static const uint8_t KEY_NUM_BYTES		= 0x2;
-static const uint8_t KEY_DATA           = 0x3;
-
 NSDictionary* combinedDefaultsDict() {
-	NSArray* localKeys = ALL_LOCAL_KEYS;
-	NSArray* localVals = ALL_LOCAL_DEFAULT_VALUES;
-	NSMutableDictionary* dict = [NSMutableDictionary
-									  dictionaryWithObjects:localVals
-									  forKeys:localKeys];
+//	NSArray* localKeys = ALL_LOCAL_KEYS;
+//	NSArray* localVals = ALL_LOCAL_DEFAULT_VALUES;
+//	NSMutableDictionary* dict = [NSMutableDictionary
+//									  dictionaryWithObjects:localVals
+//									  forKeys:localKeys];
+	NSMutableDictionary* dict = [NSMutableDictionary dictionary];
 	[dict addEntriesFromDictionary:allSensorDefaultsDict()];
+	[dict addEntriesFromDictionary:pebbleDefaultValuesDict()];
 	return dict;
 }
 
@@ -80,14 +73,13 @@ NSArray* allDataDefaultValues() {
 // Interface
 //===============================================================
 //===============================================================
-@interface ViewController () <PBPebbleCentralDelegate, UITextFieldDelegate,
+@interface ViewController () <UITextFieldDelegate,
 	UITableViewDataSource, UITableViewDelegate>
 
 //--------------------------------
 // Non-View properties
 //--------------------------------
 
-@property (strong, nonatomic) PBWatch *myWatch;
 @property (strong, nonatomic) NSString *savePath;
 @property (strong, nonatomic) NSOutputStream *stream;
 
@@ -101,10 +93,9 @@ NSArray* allDataDefaultValues() {
 
 @property (strong, nonatomic) DBDataLogger* dataLogger;
 @property (strong, nonatomic) DBSensorMonitor* sensorMonitor;
+@property (strong, nonatomic) DBPebbleMonitor* pebbleMonitor;
 
-@property (nonatomic) BOOL launchedApp;
 @property (nonatomic) BOOL recording;
-@property (nonatomic) BOOL pebbleConnected;
 
 //--------------------------------
 // View properties
@@ -162,7 +153,6 @@ NSArray* allDataDefaultValues() {
 	_tablesScrollView.contentSize = CGSizeMake(480, 150);
 	
 	// state flags
-	_launchedApp = NO;
 	_recording = NO;
 	
 	// labels for time periods
@@ -170,6 +160,16 @@ NSArray* allDataDefaultValues() {
 	_labelsDict = createLabelNamesDict();
 	_currentLabels0 = getTopLevelLabelNames();
 	_currentLabels1 = [NSMutableArray array];
+	
+	// pebble
+	[[NSNotificationCenter defaultCenter] addObserver:self
+											 selector:@selector(notifiedPebbleData:)
+												 name:kNotificationPebbleData
+											   object:nil];
+	[[NSNotificationCenter defaultCenter] addObserver:self
+											 selector:@selector(notifiedPebbleDisconnected:)
+												 name:kNotificationPebbleDisconnected
+											   object:nil];
 	
 	// data logging
 	_dataLogger = [[DBDataLogger alloc] initWithSignalNames:allDataKeys()
@@ -184,12 +184,14 @@ NSArray* allDataDefaultValues() {
 			});
 		}
 	];
-	_sensorMonitor.sendOnlyIfDifferent = YES;
+	_sensorMonitor.sendOnlyIfDifferent = YES;	//TODO want to still send it, but have datalogger ignore
 
-	// pebble connection + callbacks
-	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-		[self setupPebble];
-	});
+	_pebbleMonitor = [[DBPebbleMonitor alloc] init];
+	
+//	// pebble connection + callbacks
+//	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+//		[self setupPebble];
+//	});
 }
 
 - (void)didReceiveMemoryWarning {
@@ -198,6 +200,11 @@ NSArray* allDataDefaultValues() {
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
 	[self.view endEditing:YES];
+}
+
+- (void) viewWillDisappear:(BOOL)animated {
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	[super viewWillDisappear:animated];
 }
 
 //===============================================================
@@ -235,9 +242,9 @@ NSArray* allDataDefaultValues() {
 //}
 
 -(void) logAccelX:(double)x Y:(double)y Z:(double)z timeStamp:(timestamp_t)sampleTime {
-	NSDictionary* kvPairs = @{KEY_WATCH_X: @(x / 64.0),
-							  KEY_WATCH_Y: @(y / 64.0),
-							  KEY_WATCH_Z: @(z / 64.0)};
+	NSDictionary* kvPairs = @{kKeyPebbleX: @(x / 64.0),
+							  kKeyPebbleY: @(y / 64.0),
+							  kKeyPebbleZ: @(z / 64.0)};
 	[_dataLogger logData:kvPairs withTimeStamp:sampleTime];
 }
 
@@ -257,39 +264,39 @@ NSArray* allDataDefaultValues() {
 	[self logCurrentTagsAndUser:currentTimeStampMs()];
 }
 
-- (BOOL)logUpdate:(NSDictionary*)update fromWatch:(PBWatch*)watch {
-	if (! _recording) return NO;
-
-//	int transactionId = (int) [[update objectForKey:@(KEY_TRANSACTION_ID)] integerValue];
-	int numBytes = (int) [[update objectForKey:@(KEY_NUM_BYTES)] integerValue];
-	NSData* accelData = [update objectForKey:@(KEY_DATA)];
-	const int8_t* dataAr = (const int8_t*) [accelData bytes];
-
-	// compute start time of this buffer
-	uint numSamples = numBytes / 3;
-	uint bufferDuration = (numSamples - 1) * PEBBLE_ACCEL_PERIOD;
-	timestamp_t startTime = currentTimeStampMs() - bufferDuration;
-	
-	// ensure tags / user are up to date (shouldn't be necessary
-	// here, but might as well)
-	[self logCurrentTagsAndUser:startTime];
-
-	int8_t x, y, z;
-	timestamp_t sampleTime;
-	for (int i = 0; i < numBytes; i += 3) {
-		x = dataAr[i];
-		y = dataAr[i+1];
-		z = dataAr[i+2];
-		
-		// logging
-		sampleTime = startTime + i * PEBBLE_ACCEL_PERIOD;
-		[self logAccelX:x Y:y Z:z timeStamp:sampleTime];
-
-		//displaying
-		[self plotAccelX:x Y:y Z:z];
-	}
-	return YES;
-}
+//- (BOOL)logUpdate:(NSDictionary*)update {
+//	if (! _recording) return NO;
+//
+////	int transactionId = (int) [[update objectForKey:@(KEY_TRANSACTION_ID)] integerValue];
+//	int numBytes = (int) [[update objectForKey:@(KEY_NUM_BYTES)] integerValue];
+//	NSData* accelData = [update objectForKey:@(KEY_DATA)];
+//	const int8_t* dataAr = (const int8_t*) [accelData bytes];
+//
+//	// compute start time of this buffer
+//	uint numSamples = numBytes / 3;
+//	uint bufferDuration = (numSamples - 1) * PEBBLE_ACCEL_PERIOD;
+//	timestamp_t startTime = currentTimeStampMs() - bufferDuration;
+//	
+//	// ensure tags / user are up to date (shouldn't be necessary
+//	// here, but might as well)
+//	[self logCurrentTagsAndUser:startTime];
+//
+//	int8_t x, y, z;
+//	timestamp_t sampleTime;
+//	for (int i = 0; i < numBytes; i += 3) {
+//		x = dataAr[i];
+//		y = dataAr[i+1];
+//		z = dataAr[i+2];
+//		
+//		// logging
+//		sampleTime = startTime + i * PEBBLE_ACCEL_PERIOD;
+//		[self logAccelX:x Y:y Z:z timeStamp:sampleTime];
+//
+//		//displaying
+//		[self plotAccelX:x Y:y Z:z];
+//	}
+//	return YES;
+//}
 
 -(NSString*) generateLoggingSubdir {
 	return [LOGGING_SUBDIR_PREFIX stringByAppendingString:[self userIdOrDefaultValue]];
@@ -434,12 +441,11 @@ void setCellInActive(UITableViewCell* cell) {
 - (IBAction)startRecordingData:(id)sender {
 	_recording = YES;
 	[_dataGraph reset];
-	if (! _launchedApp) {
-		[self startWatchApp];
-	}
+	[_pebbleMonitor startWatchApp];
+//	[self startWatchApp];
 	[_dataLogger startLog];
+	[_sensorMonitor poll];			// send most recent values to datalogger
 	[self logCurrentTagsAndUser];
-	[_sensorMonitor poll];			// try to update location, etc
 	[_startButton setEnabled:NO];
 	[_stopButton setEnabled:YES];
 	[_deleteButton setEnabled:NO];
@@ -449,6 +455,7 @@ void setCellInActive(UITableViewCell* cell) {
 - (IBAction)stopRecordingData:(id)sender {
 	_recording = NO;
 	[_dataLogger endLog];
+	[_pebbleMonitor stopWatchApp];
 	[_startButton setEnabled:YES];
 	[_stopButton setEnabled:NO];
 	[_deleteButton setEnabled:YES];
@@ -492,87 +499,112 @@ void setCellInActive(UITableViewCell* cell) {
 #pragma mark Pebble
 //===============================================================
 
-//--------------------------------
-// utility funcs
-//--------------------------------
+-(void) notifiedPebbleData:(NSNotification*)notification {
+	if ([notification name] != kNotificationPebbleData) return;
+	if (! _recording) return;
 
-- (void)setPebbleUUID:(NSString*)uuidStr {
-	uuid_t myAppUUIDbytes;
-	NSUUID *myAppUUID = [[NSUUID alloc] initWithUUIDString:uuidStr];
-	[myAppUUID getUUIDBytes:myAppUUIDbytes];
-	[[PBPebbleCentral defaultCentral] setAppUUID:[NSData dataWithBytes:myAppUUIDbytes length:16]];
+	int x, y, z;
+	timestamp_t t;
+	extractPebbleData(notification.userInfo, &x, &y, &z, &t);
+
+	[self logAccelX:x Y:y Z:z timeStamp:t];
+	[self plotAccelX:x Y:y Z:z];
 }
 
-- (void)setupPebble {
-	[[PBPebbleCentral defaultCentral] setDelegate:self];
-	[PBPebbleCentral setDebugLogsEnabled:YES];
-	[self setPebbleUUID:@"00674CB5-AFEE-464D-B791-5CDBA233EA93"];
-	self.myWatch = [[PBPebbleCentral defaultCentral] lastConnectedWatch];
-	NSLog(@"Last connected watch: %@", self.myWatch);
-}
-
-- (void)startWatchApp {
-	if (_launchedApp) return;	//only do this once
-	_launchedApp = YES;
-
-	[self.myWatch appMessagesLaunch:^(PBWatch *watch, NSError *error) {
-		if (!error) {
-			NSLog(@"Successfully launched app.");
-		} else {
-			NSLog(@"Error launching app - Error: %@", error);
-		}
-	}];
-	
-	__block int counter = 0;
-	[self.myWatch appMessagesAddReceiveUpdateHandler:^BOOL(PBWatch *watch, NSDictionary *update) {
-		counter++;
-		return [self logUpdate:update fromWatch:watch];
-		return YES;
-	}];
-}
-
-- (void)stopWatchApp {
-	[self stopRecordingData:nil];
-	[self.myWatch appMessagesKill:^(PBWatch *watch, NSError *error) {
-		if(error) {
-			NSLog(@"Error closing watchapp: %@", error);
-		}
-	}];
-	
-	_launchedApp = NO;
-}
-
-//--------------------------------
-// PBPebbleCentralDelegate
-//--------------------------------
-
-- (void)pebbleCentral:(PBPebbleCentral*)central watchDidConnect:(PBWatch*)watch isNew:(BOOL)isNew {
-    [[[UIAlertView alloc] initWithTitle:@"Connected!"
-								message:[watch name]
-							   delegate:nil cancelButtonTitle:@"OK"
-					  otherButtonTitles:nil] show];
-	_pebbleConnected = YES;
-    NSLog(@"Pebble connected: %@", [watch name]);
-    self.myWatch = watch;
-	[self startWatchApp];
-}
-
-- (void)pebbleCentral:(PBPebbleCentral*)central watchDidDisconnect:(PBWatch*)watch {
-    [[[UIAlertView alloc] initWithTitle:@"Disconnected!"
-								message:[watch name]
-							   delegate:nil
-					  cancelButtonTitle:@"OK" otherButtonTitles:nil] show];
-	_pebbleConnected = NO;
+-(void) notifiedPebbleDisconnected:(NSNotification*)notification {
+	if ([notification name] != kNotificationPebbleDisconnected) return;
 	[self logAccelX:NONSENSICAL_DOUBLE
 				  Y:NONSENSICAL_DOUBLE
 				  Z:NONSENSICAL_DOUBLE
 		  timeStamp:currentTimeStampMs()];
-    NSLog(@"Pebble disconnected: %@", [watch name]);
-    
-    if (self.myWatch == watch || [watch isEqual:self.myWatch]) {
-        self.myWatch = nil;
-    }
+	
+	[[[UIAlertView alloc] initWithTitle:@"Pebble Disconnected!"
+								message:[notification.userInfo[kKeyPebbleWatch] name]
+							   delegate:nil
+					  cancelButtonTitle:@"OK" otherButtonTitles:nil] show];
 }
+
+////--------------------------------
+//// utility funcs
+////--------------------------------
+//
+//- (void)setPebbleUUID:(NSString*)uuidStr {
+//	uuid_t myAppUUIDbytes;
+//	NSUUID *myAppUUID = [[NSUUID alloc] initWithUUIDString:uuidStr];
+//	[myAppUUID getUUIDBytes:myAppUUIDbytes];
+//	[[PBPebbleCentral defaultCentral] setAppUUID:[NSData dataWithBytes:myAppUUIDbytes length:16]];
+//}
+//
+//- (void)setupPebble {
+//	[[PBPebbleCentral defaultCentral] setDelegate:self];
+//	[PBPebbleCentral setDebugLogsEnabled:YES];
+//	[self setPebbleUUID:@"00674CB5-AFEE-464D-B791-5CDBA233EA93"];
+//	self.myWatch = [[PBPebbleCentral defaultCentral] lastConnectedWatch];
+//	NSLog(@"Last connected watch: %@", self.myWatch);
+//}
+//
+//- (void)startWatchApp {
+//	if (_launchedApp) return;	//only do this once
+//	_launchedApp = YES;
+//
+//	[self.myWatch appMessagesLaunch:^(PBWatch *watch, NSError *error) {
+//		if (!error) {
+//			NSLog(@"Successfully launched app.");
+//		} else {
+//			NSLog(@"Error launching app - Error: %@", error);
+//		}
+//	}];
+//	
+//	__block int counter = 0;
+//	[self.myWatch appMessagesAddReceiveUpdateHandler:^BOOL(PBWatch *watch, NSDictionary *update) {
+//		counter++;
+//		return [self logUpdate:update fromWatch:watch];
+//		return YES;
+//	}];
+//}
+//
+//- (void)stopWatchApp {
+//	[self stopRecordingData:nil];
+//	[self.myWatch appMessagesKill:^(PBWatch *watch, NSError *error) {
+//		if(error) {
+//			NSLog(@"Error closing watchapp: %@", error);
+//		}
+//	}];
+//	
+//	_launchedApp = NO;
+//}
+//
+////--------------------------------
+//// PBPebbleCentralDelegate
+////--------------------------------
+//
+//- (void)pebbleCentral:(PBPebbleCentral*)central watchDidConnect:(PBWatch*)watch isNew:(BOOL)isNew {
+//    [[[UIAlertView alloc] initWithTitle:@"Connected!"
+//								message:[watch name]
+//							   delegate:nil cancelButtonTitle:@"OK"
+//					  otherButtonTitles:nil] show];
+//	_pebbleConnected = YES;
+//    NSLog(@"Pebble connected: %@", [watch name]);
+//    self.myWatch = watch;
+//	[self startWatchApp];
+//}
+//
+//- (void)pebbleCentral:(PBPebbleCentral*)central watchDidDisconnect:(PBWatch*)watch {
+//    [[[UIAlertView alloc] initWithTitle:@"Disconnected!"
+//								message:[watch name]
+//							   delegate:nil
+//					  cancelButtonTitle:@"OK" otherButtonTitles:nil] show];
+//	_pebbleConnected = NO;
+//	[self logAccelX:NONSENSICAL_DOUBLE
+//				  Y:NONSENSICAL_DOUBLE
+//				  Z:NONSENSICAL_DOUBLE
+//		  timeStamp:currentTimeStampMs()];
+//    NSLog(@"Pebble disconnected: %@", [watch name]);
+//    
+//    if (self.myWatch == watch || [watch isEqual:self.myWatch]) {
+//        self.myWatch = nil;
+//    }
+//}
 
 //===============================================================
 #pragma mark UITextFieldDelegate
@@ -859,42 +891,6 @@ static NSInteger tapCount = 0;
 
 //-(void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath {
 //	cell.backgroundColor = [self colorForIndex:indexPath.row];
-//}
-
-
-//===============================================================
-//#pragma mark MFMailComposeViewControllerDelegate
-//===============================================================
-
-//- (IBAction)sendEmailButtonClicked :(id)sender {
-//	[self composeEmailWithDebugAttachment];
-//}
-
-//- (void)composeEmailWithDebugAttachment {
-//	if ([MFMailComposeViewController canSendMail]) {
-//		
-//		MFMailComposeViewController *mailViewController = [[MFMailComposeViewController alloc] init];
-//		mailViewController.mailComposeDelegate = self;
-//		
-//		NSDictionary* files = [self errorLogData];
-//		for (NSString* filename in files) {
-//			NSMutableData *errorLogData = [NSMutableData data];
-//			[errorLogData appendData:files[filename]];
-//			[mailViewController addAttachmentData:errorLogData mimeType:@"text/csv" fileName:filename];
-//		}
-//		
-//		[mailViewController setSubject:@"Data Files"];
-//		[self presentModalViewController:mailViewController animated:YES];
-//	} else {
-//		NSString *message;
-//		
-//		message = @"Sorry, your issue can't be reported right now. This is most likely because no mail accounts are set up on your device.";
-//		[[[UIAlertView alloc] initWithTitle:nil message:message delegate:nil cancelButtonTitle:NSLocalizedString(@"OK", @"") otherButtonTitles: nil] show];
-//	}
-//}
-
-//- (void)mailComposeController:(MFMailComposeViewController *)controller didFinishWithResult:(MFMailComposeResult)result error:(NSError *)error {
-//	[controller dismissModalViewControllerAnimated:YES];
 //}
 
 @end
