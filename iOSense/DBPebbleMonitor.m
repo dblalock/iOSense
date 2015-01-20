@@ -175,7 +175,7 @@ void extractPebbleData(NSDictionary* data, int*x, int*y, int*z, timestamp_t* t) 
 	
 	// compute start time of this buffer
 	uint numSamples = numBytes / 3;
-	uint bufferDuration = (numSamples - 1) * kPebbleAccelPeriodMs;
+	uint bufferDuration = numSamples * kPebbleAccelPeriodMs;
 	timestamp_t startTime = currentTimeStampMs() - bufferDuration;
 	
 	int8_t x, y, z;
@@ -186,8 +186,7 @@ void extractPebbleData(NSDictionary* data, int*x, int*y, int*z, timestamp_t* t) 
 		z = dataAr[i+2];
 		
 		// logging
-		sampleTime = startTime + i * kPebbleAccelPeriodMs;
-		
+		sampleTime = startTime + (i/3) * kPebbleAccelPeriodMs;
 		NSDictionary* data = @{kKeyPebbleX: @(x),
 							   kKeyPebbleY: @(y),
 							   kKeyPebbleZ: @(z),
